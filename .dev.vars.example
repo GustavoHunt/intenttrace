@@ -1,0 +1,4 @@
+# Local-only example. Use setup to configure deployed Worker secrets.
+# Never place real secrets in this example.
+TURNSTILE_SECRET_KEY=
+SESSION_SIGNING_SECRET=

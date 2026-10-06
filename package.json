@@ -1,0 +1,54 @@
+{
+  "name": "intenttrace",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "dev:offline": "vite --host 127.0.0.1",
+    "dev:live": "node scripts/setup.mjs live",
+    "build": "vite build",
+    "check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "setup": "node scripts/setup.mjs",
+    "deploy:staging": "node scripts/setup.mjs deploy staging",
+    "deploy:demo": "node scripts/setup.mjs deploy demo",
+    "scan:secrets": "node scripts/scan-secrets.mjs",
+    "schema": "tsx scripts/schema.ts"
+  },
+  "dependencies": {
+    "@cloudflare/ai-chat": "0.12.1",
+    "agents": "0.26.0",
+    "ai": "^7.0.0",
+    "lucide-react": "^0.468.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "latest",
+    "@cloudflare/workers-types": "latest",
+    "@playwright/test": "latest",
+    "@types/node": "latest",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/ws": "8.18.2",
+    "@vitejs/plugin-react": "latest",
+    "prettier": "3.9.9",
+    "tsx": "latest",
+    "typescript": "latest",
+    "vite": "^8.0.0",
+    "vitest": "latest",
+    "wrangler": "latest",
+    "ws": "8.22.0"
+  },
+  "overrides": {
+    "@modelcontextprotocol/client": "2.2.0",
+    "@modelcontextprotocol/sdk": "1.31.0",
+    "sharp": "0.35.5"
+  }
+}
