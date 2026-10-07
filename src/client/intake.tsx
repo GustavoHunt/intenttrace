@@ -4,6 +4,7 @@ import {
   IntakeSchema,
   normalizeConversation,
   parseTranscript,
+  shareProvider,
   type Intake,
   type ImportedDocument,
 } from "../shared/intake";
@@ -158,6 +159,17 @@ export function IntakeForm({
   const [documents, setDocuments] = useState<ImportedDocument[]>([]),
     [choices, setChoices] = useState<any[]>([]);
   const [documentBusy, setDocumentBusy] = useState(false);
+  const candidateUrl = url.trim();
+  let linkProvider: "chatgpt" | "claude" | undefined;
+  let linkError = "";
+  if (candidateUrl) {
+    try {
+      linkProvider = shareProvider(candidateUrl);
+    } catch {
+      linkError =
+        "Use chatgpt.com/<route>, claude.ai/share/<id>, or claude.ai/code/session_<id>. Include https:// and omit query parameters or fragments.";
+    }
+  }
   const accept = (value: any, extra: Partial<Intake> = {}) => {
     const c = normalizeConversation(value);
     setPreview({ ...c, provider: "export", warnings: [], ...extra });
@@ -195,7 +207,8 @@ export function IntakeForm({
         onSubmit={(e) => {
           e.preventDefault();
           void action(async () => {
-            const data = await source(url, "conversation");
+            shareProvider(candidateUrl);
+            const data = await source(candidateUrl, "conversation");
             accept(data, {
               provider: data.provider,
               sourceUrl: data.sourceUrl,
@@ -214,17 +227,30 @@ export function IntakeForm({
             required
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            placeholder="https://chatgpt.com/share/… or https://claude.ai/share/…"
+            placeholder="https://chatgpt.com/… or https://claude.ai/code/session_…"
+            aria-invalid={Boolean(linkError)}
+            aria-describedby="shared-link-validation shared-link-help"
             disabled={busy}
           />
-          <button disabled={busy || !url.trim() || !local}>
+          <button disabled={busy || !linkProvider || !local}>
             {busy ? "Reading conversation…" : "Read shared conversation"}
             <ArrowRight size={16} />
           </button>
         </div>
-        <p className="small muted">
-          Only public conversation links. Shared snapshots can omit attachments,
-          so add those separately.{" "}
+        <p
+          id="shared-link-validation"
+          className={`small ${linkError ? "input-error" : "muted"}`}
+          role="status"
+          aria-live="polite"
+        >
+          {linkError ||
+            (linkProvider
+              ? `${linkProvider === "claude" ? "Claude" : "ChatGPT"} link format accepted. The conversation still needs to be accessible without signing in.`
+              : "Accepts ChatGPT routes, Claude share links and Claude Code session links.")}
+        </p>
+        <p id="shared-link-help" className="small muted">
+          Links that require a login need the export/paste fallback. Shared
+          snapshots can omit attachments, so add those separately.{" "}
           {local
             ? "The local app fetches the link without your ChatGPT or Claude login."
             : "Shared-link fetching is available in the downloaded local app. Use the fallback here."}

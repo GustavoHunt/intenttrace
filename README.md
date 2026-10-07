@@ -34,7 +34,7 @@ If login expires, run `npx wrangler whoami`, then retry. See [setup and troubles
 
 ## Investigate a conversation
 
-1. Paste a public `https://chatgpt.com/share/…` or `https://claude.ai/share/…` link and choose **Read shared conversation**. Review the imported prompt. Shared snapshots can omit attachments.
+1. Paste a ChatGPT or Claude conversation URL and choose **Read shared conversation**. The shared regex validator accepts `https://chatgpt.com/<route>` (including `/share/<id>` and `/c/<id>`), `https://claude.ai/share/<id>`, and `https://claude.ai/code/session_<id>`. Review the imported prompt. Valid URL format does not establish public access: private chats and Code sessions may require the export/paste fallback. Shared snapshots can omit attachments.
 2. Add the delivered artifact as a file, public HTTPS text/code/HTML URL, or pasted text. Files include text, code, CSV, JSON, Markdown, PDF and DOCX. PDF/DOCX assessment covers extracted text, not layout, images or behavior.
 3. Create the case. In live mode Llama proposes requirements; edit them to one testable requirement per line and **Confirm requirements**. Extraction failure preserves the prompt for manual review.
 4. Choose **Assess with CLEF**. A Workflow snapshots evidence, calls the actual `@cf/cloudflare/clef` decision model, retains probabilities, and asks Llama to explain the findings. Inspect linked evidence or ask the persistent investigation chat a question.

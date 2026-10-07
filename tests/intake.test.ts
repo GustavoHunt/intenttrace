@@ -143,6 +143,43 @@ describe("conversation intake", () => {
     ])
       expect(() => shareProvider(url)).toThrow();
   });
+  it.each([
+    ["https://claude.ai/code/session_synthetic-123_A", "claude"],
+    ["https://claude.ai/code/session_synthetic-123_A/", "claude"],
+    ["https://chatgpt.com/c/synthetic-123", "chatgpt"],
+    ["https://chatgpt.com/synthetic-123", "chatgpt"],
+    ["https://chatgpt.com/g/g-synthetic/c/synthetic-123/", "chatgpt"],
+  ])("accepts vendor route %s", (url, provider) => {
+    expect(shareProvider(url)).toBe(provider);
+    expect(
+      IntakeSchema.parse({
+        title: "Synthetic",
+        sourceUrl: url,
+        provider,
+        messages: [],
+        originalPrompt: "Deliver a report",
+        documents: [],
+      }).sourceUrl,
+    ).toBe(url);
+  });
+  it.each([
+    "https://claude.ai/code/session_",
+    "https://claude.ai/code/session_synthetic/more",
+    "https://claude.ai/chat/synthetic",
+    "https://claude.ai.evil.test/code/session_synthetic",
+    "https://chatgpt.com/",
+    "https://chatgpt.com:443/c/synthetic",
+    "https://chatgpt.com/c/synthetic?token=private",
+    "https://chatgpt.com/c/synthetic#private",
+    "https://chatgpt.com/c/../synthetic",
+    "https://chatgpt.com/c/%2e%2e/synthetic",
+    "https://chatgpt.com//synthetic",
+    "https://chatgpt.com/c/synthetic\n",
+    "https://chatgpt.com@evil.test/c/synthetic",
+    "https://evil.test/https://chatgpt.com/c/synthetic",
+  ])("rejects malformed or unsafe route %s", (url) =>
+    expect(() => shareProvider(url)).toThrow(),
+  );
   it("creates unapproved supplied evidence with hashes of original extracted text", async () => {
     const input = IntakeSchema.parse({
       title: "Synthetic",

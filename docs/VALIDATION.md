@@ -3,7 +3,7 @@
 ## Local checks on 7 October 2026
 
 - TypeScript check passed.
-- 54 unit tests passed, including conversation branches, Claude blocks, share payloads, prototype-pollution rejection, DNS pinning/redirect/size boundaries, CLEF probability thresholds and schemas, plus prior runtime/installer coverage.
+- 73 unit tests passed, including shared vendor regex validation for Claude Code sessions and generic ChatGPT routes, malformed/lookalike URLs, conversation branches, Claude blocks, share payloads, prototype-pollution rejection, DNS pinning/redirect/size boundaries, CLEF probability thresholds and schemas, plus prior runtime/installer coverage.
 - Eight integration tests passed against local Workflows, Durable Objects, R2 and Agent chat. They include general intake, explicit requirement approval, artifact preservation, superseded findings, and local source restrictions. Model calls in these tests are explicitly offline.
 - Application build passed. A frontend chunk-size advisory remains (approximately 161 kB compressed); PDF parsing and its worker are lazy-loaded.
 - Dependency audit reports zero known vulnerabilities after replacing a vulnerable DOCX dependency with bounded XML text extraction.

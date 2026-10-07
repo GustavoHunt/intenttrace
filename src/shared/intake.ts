@@ -39,7 +39,7 @@ export const IntakeSchema = z
         } catch {
           return false;
         }
-      }, "Use a supported public share URL.")
+      }, "Use a supported ChatGPT or Claude conversation URL.")
       .optional(),
     provider: z.enum(["chatgpt", "claude", "manual", "export"]),
     messages: z.array(MessageSchema).max(150),
@@ -52,6 +52,14 @@ export type Intake = z.infer<typeof IntakeSchema>;
 export type ChatMessage = z.infer<typeof MessageSchema>;
 export type ImportedDocument = z.infer<typeof DocumentSchema>;
 
+// Validate the complete raw URL, not a substring or a normalized dot-segment path.
+// Matching a vendor route establishes its format, not public readability.
+export const CONVERSATION_LINK_PATTERNS = {
+  chatgpt: /^https:\/\/chatgpt\.com\/[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*\/?$/i,
+  claude:
+    /^https:\/\/claude\.ai\/(?:share\/[A-Za-z0-9_-]+|code\/session_[A-Za-z0-9_-]+)\/?$/i,
+} as const;
+
 export function shareProvider(raw: string): "chatgpt" | "claude" {
   const u = new URL(raw);
   if (
@@ -60,20 +68,23 @@ export function shareProvider(raw: string): "chatgpt" | "claude" {
     u.password ||
     u.port ||
     u.search ||
-    u.hash
+    u.hash ||
+    raw.length > 2048 ||
+    raw !== raw.trim()
   )
-    throw new Error("Use a public ChatGPT or Claude conversation share link.");
+    throw new Error(
+      "Use an HTTPS ChatGPT or Claude conversation URL without credentials, query parameters or fragments.",
+    );
   if (
     u.hostname === "chatgpt.com" &&
-    /^\/share\/[a-f0-9-]{20,100}\/?$/i.test(u.pathname)
+    CONVERSATION_LINK_PATTERNS.chatgpt.test(raw)
   )
     return "chatgpt";
-  if (
-    u.hostname === "claude.ai" &&
-    /^\/share\/[a-zA-Z0-9_-]{10,100}\/?$/.test(u.pathname)
-  )
+  if (u.hostname === "claude.ai" && CONVERSATION_LINK_PATTERNS.claude.test(raw))
     return "claude";
-  throw new Error("Use a chatgpt.com/share/ or claude.ai/share/ link.");
+  throw new Error(
+    "Use a chatgpt.com/<route>, claude.ai/share/<id>, or claude.ai/code/session_<id> URL.",
+  );
 }
 const textOf = (value: any): string => {
   if (typeof value === "string") return value;
