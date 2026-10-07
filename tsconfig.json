@@ -13,6 +13,10 @@
   },
   "include": [
     "src",
+    "installer/*.ts",
+    "scripts/install-local.ts",
+    "scripts/configure-oauth.ts",
+    "scripts/update-installation.ts",
     "tests",
     "scripts/schema.ts",
     "vite.config.ts",

@@ -205,3 +205,78 @@ test("JSON import marks supplied evidence and rejects corrupt hashes and referen
     ).status(),
   ).toBe(400);
 });
+test("general intake requires approval, preserves original artifacts and versions assessments", async ({
+  request,
+}) => {
+  await begin(request);
+  const response = await request.post("/api/intake", {
+    headers: { Origin: origin },
+    data: {
+      title: "Synthetic report",
+      provider: "manual",
+      messages: [{ id: "a", role: "user", text: "Deliver a summary" }],
+      originalPrompt: "Deliver a summary",
+      documents: [
+        { name: "summary.md", content: "# Summary\nThree rows delivered" },
+      ],
+    },
+  });
+  expect(response.status(), await response.text()).toBe(201);
+  const c = await response.json();
+  expect(c.intake.messages).toHaveLength(1);
+  expect(c.scopes[0].confirmedAt).toBeNull();
+  expect(
+    (
+      await request.post(`/api/cases/${c.id}/investigate`, {
+        headers: { Origin: origin },
+        data: {},
+      })
+    ).status(),
+  ).toBe(409);
+  await action(request, c.id, "requirements", {
+    requirements: [{ id: "req_1", text: "Deliver a summary" }],
+  });
+  await action(request, c.id, "investigate", {});
+  const result = await complete(request, c.id);
+  expect(result.findings[0].method).toBe("offline");
+  expect(result.findings[0].decision.mode).toBe("offline");
+  expect(result.findings[0].findings[0].status).toBe("insufficient_evidence");
+  const doc = c.artifacts.find((a: any) => a.name === "summary.md");
+  expect(
+    await (await request.get(`/api/cases/${c.id}/artifacts/${doc.id}`)).text(),
+  ).toBe("# Summary\nThree rows delivered");
+  const changed = await action(request, c.id, "documents", {
+    documents: [{ name: "additional.txt", content: "Additional evidence" }],
+  });
+  expect(changed.findings[0].superseded).toBe(true);
+  const version = await action(request, c.id, "requirements", {
+    requirements: [{ id: "req_1", text: "Deliver a detailed summary" }],
+  });
+  expect(version.scopes.at(-1).version).toBe(3);
+  expect(
+    (
+      await request.post(`/api/cases/${c.id}/run`, {
+        headers: { Origin: origin },
+        data: { operationId: crypto.randomUUID() },
+      })
+    ).status(),
+  ).toBe(409);
+});
+test("local source fetch rejects cross-origin and private destinations", async ({
+  request,
+}) => {
+  expect(
+    (
+      await request.post("/local/source", {
+        headers: { Origin: "https://attacker.invalid" },
+        data: { url: "https://127.0.0.1/secret", kind: "artifact" },
+      })
+    ).status(),
+  ).toBe(400);
+  const blocked = await request.post("/local/source", {
+    headers: { Origin: origin },
+    data: { url: "https://127.0.0.1/secret", kind: "artifact" },
+  });
+  expect(blocked.status()).toBe(400);
+  expect(await blocked.text()).toContain("Private and local");
+});

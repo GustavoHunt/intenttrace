@@ -39,7 +39,7 @@ export async function modelJson<T>(
     },
     { gateway: { id: env.AI_GATEWAY_ID, skipCache: true, collectLog: false } },
   )) as {
-    response?: string;
+    response?: unknown;
     usage?: { prompt_tokens?: number; completion_tokens?: number };
   };
   console.info(
@@ -51,12 +51,20 @@ export async function modelJson<T>(
       outputTokens: result.usage?.completion_tokens,
     }),
   );
-  const content = (result.response || "")
+  return parseModelResponse(result.response, schema);
+}
+export function parseModelResponse<T>(
+  response: unknown,
+  schema: z.ZodType<T>,
+): T {
+  const content = (typeof response === "string" ? response : "")
     .replace(/^```(?:json)?\s*/, "")
     .replace(/\s*```$/, "")
     .trim();
   try {
-    return schema.parse(JSON.parse(content));
+    return schema.parse(
+      typeof response === "string" ? JSON.parse(content) : response,
+    );
   } catch {
     throw new HttpError(
       502,

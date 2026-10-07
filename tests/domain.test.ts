@@ -14,7 +14,14 @@ import {
   readJson,
   sameOrigin,
 } from "../src/server/security";
-import { grounded } from "../src/server/ai";
+import { grounded, parseModelResponse, Answer } from "../src/server/ai";
+it("validates both text and structured Workers AI responses", () => {
+  const answer = { text: "Synthetic result", evidenceIds: [] };
+  expect(parseModelResponse(answer, Answer)).toEqual(answer);
+  expect(parseModelResponse(JSON.stringify(answer), Answer)).toEqual(answer);
+  expect(() => parseModelResponse({ text: 42 }, Answer)).toThrow();
+  expect(() => parseModelResponse(undefined, Answer)).toThrow();
+});
 async function scenario(
   kind: "correct" | "divergence" | "missing" = "correct",
 ) {

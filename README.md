@@ -1,116 +1,77 @@
 # IntentTrace
 
-Did an AI agent deliver the change you approved—and what evidence supports that conclusion?
+Did the AI deliver what you asked for? Import the conversation, add the delivered artifact, review its requirements, and inspect the evidence behind each assessment.
 
-IntentTrace follows a software change from intent, through an approved scope, to execution and evidence. Its demonstration asks an agent to configure CSV export for a synthetic project. A deterministic verifier compares the actual export with the scope version approved before that run. An LLM explains the findings and answers questions through a persistent case conversation.
+IntentTrace connects intent to delivery through an investigation case file. It is inspired by Gustavo's work in business forensics and software scope management. This repository contains synthetic examples, with no employer records, customer data, CV details, private transcripts or credentials.
 
-Inspired by work connecting software delivery to business scope and by evidence-based investigation. No employer records, customer data, CV details, or proprietary source code are included.
+**Download and run locally.** The opening screen asks for a ChatGPT or Claude shared conversation link. You can also import chat-history JSON, paste a labelled conversation, or start with just the original prompt and an artifact. No hosted OAuth installer is required.
 
-**Implementation status:** backend and local runtime tests are implemented. The interface is awaiting selection of a supplied mockup. Public hosting and live model acceptance are pending. Local offline tests do not establish live AI functionality.
+## Quick start
 
-## The demonstration
-
-The request is: “Add CSV export for the currently filtered tasks in this project. Exclude internal notes and leave task data unchanged.”
-
-Project Atlas contains 24 synthetic tasks, of which 18 are open. The approved filtered selection includes those 18 tasks. Three scenarios exercise the same execution and verification paths:
-
-| Scenario          | Result                                                                                             |
-| ----------------- | -------------------------------------------------------------------------------------------------- |
-| Correct execution | The export contains the approved tasks, omits notes, and preserves task state.                     |
-| Scope divergence  | An explicitly injected adapter fault broadens selection to all 24 tasks. The mismatch is detected. |
-| Missing evidence  | The result artifact is deliberately withheld. The verifier reports insufficient evidence.          |
-
-A later approval to export all project tasks creates a new scope version. It does not retroactively authorize an earlier run. Imported evidence is marked **supplied**, because content hashes establish integrity, not truth or authenticity.
-
-## Cloudflare components
-
-| Requirement      | Implementation                                                                                                                            |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| LLM              | Workers AI, default `@cf/meta/llama-3.3-70b-instruct-fp8-fast`, through an AI binding.                                                    |
-| Coordination     | A Cloudflare Workflow snapshots evidence, verifies scope, explains findings, and publishes a revision.                                    |
-| Chat             | React client planned; the server uses Cloudflare `AIChatAgent` and persistent message history.                                            |
-| Memory           | A case Agent Durable Object stores case state in SQLite and conversation history in SDK-managed storage.                                  |
-| Evidence         | Private R2 artifacts with SHA-256 hashes; downloads require the owning session.                                                           |
-| Model visibility | AI Gateway; request/response collection is disabled in code. Worker logs record model operation duration and token counts where supplied. |
-| Public sandbox   | Turnstile, signed HttpOnly cookies, same-origin writes, 24-hour sessions, and ownership checks.                                           |
-| Spend control    | Durable Object counters reserve model calls before inference: 30 per session and 200 per day by default.                                  |
-
-Workers Static Assets hosts the React build beside the API; a separate Pages project is unnecessary. See [architecture](docs/ARCHITECTURE.md) for tradeoffs and deferred services.
-
-## Local development
-
-Use Node.js 22.12 or newer and npm. From the repository root:
+Use Node.js **22.13 or newer** and npm. Download with **Code → Download ZIP**, extract it, and open a terminal in the directory containing `package.json`. Or clone this repository.
 
 ```sh
 npm ci
-npm run check
-npm test
 npm run dev:offline
 ```
 
-The local service listens on `http://127.0.0.1:5173`. Offline mode is limited to localhost and **does not call an LLM**. Configuration and explanations use deterministic fixtures and are explicitly labelled offline. It requires no Cloudflare credentials.
+Open the localhost address printed in the terminal, normally `http://127.0.0.1:5173`. Offline mode exercises intake, case memory, chat and the CSV verifier without credentials. **It does not call an LLM or CLEF.** General requirements remain insufficient evidence until assessed in live mode.
+
+## Enable live Llama + CLEF
+
+1. Sign in through Cloudflare's own browser login: `npx wrangler login`. Wrangler stores the login in its private local configuration; never paste credentials into source files or chat.
+2. In your Cloudflare dashboard, copy the intended account's **Account ID**. In **AI → AI Gateway**, create a gateway in that account and copy its **Gateway ID**. Disable persistent prompt/response logging and caching. Workers AI uses your login and native binding; no external LLM key is needed.
+3. Run setup, which asks only for those two public resource identifiers:
 
 ```sh
+npm run setup:local
+npm run dev:live
+```
+
+Setup writes an ignored local configuration. R2, Durable Objects and Workflows run in Cloudflare's local emulator; only AI calls use your account. This path requires no deployed Worker, R2 activation, Turnstile widget or OAuth client. Live calls use account quota and can incur charges. The app reserves calls before inference (30 per session, 200 per day by default); these limits do not cap your entire Cloudflare bill.
+
+If login expires, run `npx wrangler whoami`, then retry. See [setup and troubleshooting](docs/INSTALLATION.md).
+
+## Investigate a conversation
+
+1. Paste a public `https://chatgpt.com/share/…` or `https://claude.ai/share/…` link and choose **Read shared conversation**. Review the imported prompt. Shared snapshots can omit attachments.
+2. Add the delivered artifact as a file, public HTTPS text/code/HTML URL, or pasted text. Files include text, code, CSV, JSON, Markdown, PDF and DOCX. PDF/DOCX assessment covers extracted text, not layout, images or behavior.
+3. Create the case. In live mode Llama proposes requirements; edit them to one testable requirement per line and **Confirm requirements**. Extraction failure preserves the prompt for manual review.
+4. Choose **Assess with CLEF**. A Workflow snapshots evidence, calls the actual `@cf/cloudflare/clef` decision model, retains probabilities, and asks Llama to explain the findings. Inspect linked evidence or ask the persistent investigation chat a question.
+
+CLEF is a model assessment, not proof. A supported/contradicted result needs a top probability of at least 75% and a margin of at least 20 percentage points; otherwise IntentTrace reports insufficient evidence. These are application thresholds, not calibrated accuracy guarantees. Missing artifacts also yield insufficient evidence, irrespective of conversation claims. No arbitrary code, page script or repository is executed.
+
+ChatGPT and Claude have no documented stable public import API. IntentTrace conservatively reads visible messages or embedded JSON without account cookies. Restricted links, bot protection or changed formats can make imports unavailable; it never invents history or bypasses access controls. Use JSON export or labelled `User:` / `Assistant:` text instead. A multi-conversation export lets you select one conversation before case storage. Large exports should first be reduced to the intended conversation.
+
+Try [the synthetic conversation](examples/conversation.json) with [its Markdown artifact](examples/release-summary.md) for general intake. **Open CSV example** offers a deterministic demonstration: 18 approved open tasks versus 24 total tasks, with correct delivery, scope divergence, or missing evidence. A later approval never retroactively authorizes an earlier run.
+
+## Cloudflare components
+
+| Component | Role |
+| --- | --- |
+| Workers AI / Llama 3.3 | Draft requirements, bounded export configuration, explanations and grounded chat. |
+| Workers AI / CLEF | Typed requirement decisions and probabilities against supplied artifact text. |
+| Agents / Durable Objects | Case coordination, SQLite state, persisted chat, ownership and call budgets. |
+| Workflows | Immutable snapshots, assessment, explanation and revision publication. |
+| R2 | Private artifact contents and SHA-256 integrity checks, emulated locally. |
+| AI Gateway | Native model routing; requests disable content collection and caching. |
+| Workers + Static Assets | Same-origin React case desk and API, served locally by Vite. |
+| Turnstile / Workers Secrets | Optional public deployment protections; unnecessary for localhost. |
+
+Cases expire after 24 hours and can be deleted from the desk. Local persistence is under ignored `.wrangler`; downloaded reports remain on your computer. In live mode selected prompts/artifacts go to Cloudflare for inference. Review the provider's data terms before importing confidential material. A hash establishes byte integrity after receipt, not authenticity.
+
+## Development and validation
+
+```sh
+npm run check
+npm test
 npm run test:e2e
+npm run build
 npm run scan:secrets
 ```
 
-The current integration suite exercises real local Workflows, Durable Objects and R2 through HTTP. Once browser tests are added, install Chromium with `npx playwright install chromium`.
+The integration suite uses local Workflows, Durable Objects, R2 and Agent chat; its model responses are explicitly offline. Live CLEF and Llama were separately validated on synthetic material through the local app. See [validation](docs/VALIDATION.md), [architecture](docs/ARCHITECTURE.md), [API](docs/API.md), [security](SECURITY.md), and [AI-assisted development disclosure](PROMPTS.md).
 
-## Deploy your own instance
+Public deployment is optional. [The retained installer prototype](docs/INSTALLER-LEGACY.md) is an advanced experiment, not required for the downloadable app. Never commit `.dev.vars`, `.env`, `.wrangler`, `.local`, generated account configuration, exported browser state, credentials or private evidence.
 
-All resources must belong to your selected Cloudflare account. Use separate `staging` and `demo` resource sets. Resource creation and inference can incur charges; check your account's current plan and pricing. The application counters limit AI calls, not your entire Cloudflare bill.
-
-1. Authenticate with Cloudflare using `npx wrangler login`. Choose the account in the Cloudflare dashboard and copy its **Account ID**. Do not place an API token in a source file. For CI deployment, store a narrowly scoped Cloudflare token in GitHub environment secrets; deployment is deliberately manual in the included CI workflow.
-2. In **AI → AI Gateway**, create a gateway in that account. Copy its Gateway ID, turn off persistent prompt/response logging, and leave caching disabled for this evidence workflow. The Workers AI binding supplies account identity; no external LLM key or AI Gateway token is required by this application.
-3. In **Turnstile**, create a managed widget. Add your exact deployment hostname, such as `intenttrace-demo.<your-workers-subdomain>.workers.dev`. Copy the **sitekey** for public configuration. Keep its **secret key** in Cloudflare Workers Secrets. Add the staging hostname to a separate staging widget. Do not use the always-pass test keys on a public deployment.
-4. In **R2**, enable the service if necessary. Run the following commands for the desired environment. `configure` asks only for the Account ID, Gateway ID, and public Turnstile sitekey. Its generated configuration is ignored by Git.
-
-```sh
-npm run setup -- configure staging
-npm run setup -- resources staging
-npm run setup -- secrets staging
-npm run deploy:staging
-```
-
-`resources` creates a private evidence bucket and adds a one-day expiration rule. If the bucket already exists, confirm its ownership in R2 and add the lifecycle rule there; do not delete existing data to rerun setup. The Worker deployment creates the Agent bindings and Workflow from the configuration.
-
-`secrets` uses Wrangler's protected prompt to upload `TURNSTILE_SECRET_KEY` directly to Workers Secrets, then generates a random `SESSION_SIGNING_SECRET` and uploads it without writing it to disk or printing it. Wrangler may offer to create the named Worker before its first deployment. You can alternatively add both secrets in **Workers & Pages → your Worker → Settings → Variables and Secrets**, with type **Secret**. Use a cryptographically random signing secret of at least 32 bytes. Rotating it ends existing sessions.
-
-After staging is verified, repeat with `demo`:
-
-```sh
-npm run setup -- configure demo
-npm run setup -- resources demo
-npm run setup -- secrets demo
-npm run deploy:demo
-```
-
-Visit the deployed hostname, complete Turnstile, and exercise all three scenarios and a chat question. Check the result labels show live model operation. A model outage can leave deterministic findings available while the explanation is labelled unavailable. Do not present that as a successful live LLM test.
-
-### Optional live local development
-
-Create the ignored live configuration as above. Copy `.dev.vars.example` to `.dev.vars` and put local development values there, obtained from Cloudflare Turnstile and a fresh random session secret. Add `127.0.0.1` to a development widget's allowed hostnames. Run `npm run dev:live`. This invokes real Workers AI and consumes quota. Never commit `.dev.vars`, `.env`, Wrangler credentials, generated deployment files, or tokens. Real deployment secrets are supplied through Workers Secrets, not the browser.
-
-## Evidence imports
-
-See [the JSON Schema](docs/evidence-bundle.schema.json) and [synthetic examples](examples). A bundle contains scopes, events, runs and artifacts. Each artifact's hash covers the exact UTF-8 bytes of its `content` string. The upload limit is 1 MiB; cases are capped at 2 MiB in storage. IDs and references must be valid and duplicate-free. An omitted result artifact is allowed so a case can represent missing evidence.
-
-The reporting endpoint contains case metadata and findings in addition to the import fields. To re-import a report, extract the six schema fields: `schemaVersion`, `title`, `scopes`, `events`, `runs`, and `artifacts`. Additional evidence must use new record IDs and event sequence numbers; conflicting records are rejected.
-
-## Verification and limits
-
-The verifier checks the supported task-export format, not arbitrary software changes. There is no arbitrary code execution, external URL fetching, GitHub write access, or autonomous production change. The LLM can choose an allowlisted export configuration or a read-only investigation view. Findings remain deterministic even when model prose is wrong. Known citation IDs alone do not prove the prose is accurate; reviewers should inspect the linked evidence.
-
-Sessions and case access expire after 24 hours. Durable Object alarms delete stored cases and messages, and R2 lifecycle expiration is a fallback for orphaned artifacts. Expiration is eventual; provider logs, Workflow history, and backups have independent retention. This is a public synthetic-data demonstration, not a confidential evidence repository or a compliance archive.
-
-See [SECURITY.md](SECURITY.md), [the API contract](docs/API.md), and [PROMPTS.md](PROMPTS.md) for implementation boundaries and AI assistance disclosure.
-
-## Documentation used
-
-- [Cloudflare Agents](https://developers.cloudflare.com/agents/)
-- [Chat Agents](https://developers.cloudflare.com/agents/communication-channels/chat/chat-agents/)
-- [Agent Workflows](https://developers.cloudflare.com/agents/concepts/workflows/)
-- [Workers AI through AI Gateway](https://developers.cloudflare.com/ai-gateway/usage/worker-binding-methods/)
-- [Turnstile widget setup](https://developers.cloudflare.com/turnstile/get-started/widget-management/dashboard/)
-- [R2 lifecycle commands](https://developers.cloudflare.com/workers/wrangler/commands/r2/)
+Primary documentation: [Cloudflare Agents](https://developers.cloudflare.com/agents/), [CLEF model API](https://developers.cloudflare.com/workers-ai/models/clef/), [CLEF decision model design](https://blog.cloudflare.com/clef-decision-models/), [ChatGPT shared links](https://help.openai.com/en/articles/7925741-sharing-conversations-and-scheduled-tasks-in-chatgpt), [Claude shared chats](https://support.claude.com/en/articles/16762437-public-links-for-shared-chats).

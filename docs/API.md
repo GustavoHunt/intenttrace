@@ -1,5 +1,21 @@
 # API contract
 
+## General intake
+
+| Route | Behavior |
+| --- | --- |
+| POST `/local/source` | Local Vite only. Same-origin `{url, kind: "conversation" or "artifact"}`. Public HTTPS/DNS-pinned fetch, 1 MiB response cap, text-only artifact URLs. Returns preview, no case creation. |
+| POST `/api/intake` | Authenticated `{title, provider, sourceUrl?, messages, originalPrompt, documents, warnings?}`. Validated supplied history and artifacts, unapproved draft requirements. 1 MiB request cap. |
+| POST `/api/cases/:id/requirements` | `{requirements: [{id: "req_1", text: "..."}]}` confirms a scope version. 1–12 unique IDs; 3–1,000 characters per requirement. |
+| POST `/api/cases/:id/documents` | `{documents: [{name, content, mediaType?, originalSha256?}]}` adds artifact text and supersedes findings. Eight per request; 30 artifacts per general case. |
+| POST `/api/cases/:id/investigate` | `{}` for general cases. Requires confirmed requirements. Publishes `method`, `scopeId`, CLEF `decision` probabilities and findings. |
+
+Messages contain `{id, role: "user" or "assistant", text}`; up to 150 messages of at most 60,000 characters, subject to total byte limits. Documents allow 300,000 extracted characters each. General reports contain intake metadata and evidence text, and are not directly reusable legacy bundles. General cases cannot invoke the CSV executor. Findings are model assessments, not deterministic proof.
+
+Llama context is bounded to 16 KiB per call. CLEF input is capped at 60,000 encoded bytes including questions; excerpts disclose truncation. Local development skips Turnstile only with the localhost restriction and a generated persisted signing key.
+
+## Common routes and CSV evidence bundles
+
 All routes are same-origin. Session cookies are HttpOnly. POST bodies use `application/json`. Errors return a public `error` string without source contents or credentials.
 
 | Method / route                             | Purpose                                                                                                  |

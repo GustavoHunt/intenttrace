@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { RequirementSchema, type Intake } from "./intake";
 
 const id = z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/);
 const date = z.iso.datetime();
@@ -14,6 +15,7 @@ export const ScopeSchema = z
     preserveTasks: z.boolean(),
     confirmedAt: date.nullable(),
     provenance: z.enum(["observed", "supplied"]),
+    requirements: z.array(RequirementSchema).min(1).max(12).optional(),
   })
   .strict();
 export const EventSchema = z
@@ -70,13 +72,18 @@ export const ArtifactSchema = z
   .object({
     id,
     name: z.string().max(150),
-    kind: z.enum(["snapshot", "export", "configuration"]),
+    kind: z.enum(["snapshot", "export", "configuration", "document"]),
     sha256: z.string().regex(/^[a-f0-9]{64}$/),
     content: z.string().max(900000),
+    mediaType: z.string().max(100).optional(),
+    originalSha256: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .optional(),
   })
   .strict();
 export const FindingSchema = z.object({
-  criterion: z.enum(["selection", "notes", "unchanged"]),
+  criterion: z.string().min(1).max(100),
   status: z.enum(["supported", "contradicted", "insufficient_evidence"]),
   explanation: z.string(),
   evidenceIds: z.array(z.string()),
@@ -102,13 +109,29 @@ export type Revision = {
   id: string;
   runId: string;
   evidenceRevision: number;
+  scopeId?: string;
   createdAt: string;
   findings: Finding[];
   summary: string;
   explanationMode: "live" | "offline" | "unavailable";
   superseded: boolean;
+  method?: "deterministic" | "clef" | "offline";
+  decision?: {
+    model: string;
+    mode: "live" | "offline" | "unavailable";
+    durationMs: number;
+    answers: Record<
+      string,
+      {
+        choice: string;
+        probabilities: Record<string, number>;
+        confidence: number;
+      }
+    >;
+  };
 };
 export type CaseData = Bundle & {
+  intake?: Omit<Intake, "documents">;
   id: string;
   scenario: Scenario;
   createdAt: string;

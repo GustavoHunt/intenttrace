@@ -1,0 +1,6 @@
+# Configure a private OAuth client in Cloudflare for local testing.
+# Redirect URL: http://127.0.0.1:8788/oauth/callback
+# Copy this file to installer/.dev.vars (ignored by Git).
+OAUTH_CLIENT_ID=
+OAUTH_CLIENT_SECRET=
+ENCRYPTION_SECRET=

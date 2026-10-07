@@ -12,4 +12,9 @@ coverage/
 .impeccable/review/
 .impeccable/*.local.json
 *.log
+installer/public/release.json
+installer/.dev.vars*
+!installer/.dev.vars.example
+installer/wrangler.local*.jsonc
+.local/
 .DS_Store

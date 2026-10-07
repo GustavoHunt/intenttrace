@@ -63,6 +63,30 @@
               "observed",
               "supplied"
             ]
+          },
+          "requirements": {
+            "minItems": 1,
+            "maxItems": 12,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^req_[1-9][0-9]?$"
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 1000
+                }
+              },
+              "required": [
+                "id",
+                "text"
+              ],
+              "additionalProperties": false
+            }
           }
         },
         "required": [
@@ -261,7 +285,8 @@
             "enum": [
               "snapshot",
               "export",
-              "configuration"
+              "configuration",
+              "document"
             ]
           },
           "sha256": {
@@ -271,6 +296,14 @@
           "content": {
             "type": "string",
             "maxLength": 900000
+          },
+          "mediaType": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "originalSha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
           }
         },
         "required": [

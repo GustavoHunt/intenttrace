@@ -42,11 +42,25 @@ import {
   verifySession,
 } from "./security";
 import { Answer, grounded, modelJson } from "./ai";
+import { installationCheck } from "./install-check";
+import {
+  IntakeSchema,
+  DocumentSchema,
+  RequirementSchema,
+  type Requirement,
+  type ImportedDocument,
+} from "../shared/intake";
+import { intakeCase, addDocuments } from "./intake-case";
+import { assessRequirements } from "./clef";
 
 export interface Env {
   MODE: "live" | "offline";
   AI?: Ai;
+  BROWSER?: Fetcher;
+  INSTALL_RELEASE?: string;
   MODEL_ID: string;
+  CLEF_MODEL_ID?: string;
+  LOCAL_DEVELOPMENT?: string;
   AI_GATEWAY_ID: string;
   TURNSTILE_SITE_KEY: string;
   TURNSTILE_SECRET_KEY?: string;
@@ -273,6 +287,8 @@ export class CaseAgent extends AIChatAgent<
   async confirm(selection: "filtered" | "project") {
     return this.locked(async () => {
       const c = await this.data();
+      if (c.intake)
+        throw new HttpError(409, "Review this case's requirements instead.");
       if (c.status === "running" || c.status === "analysing")
         throw new HttpError(409, "Wait for the current operation");
       let scope = c.scopes.at(-1)!;
@@ -310,6 +326,11 @@ export class CaseAgent extends AIChatAgent<
   async run(operationId: string) {
     const start = await this.locked(async () => {
       const c = await this.data();
+      if (c.intake)
+        throw new HttpError(
+          409,
+          "Assess the supplied artifacts instead of running the CSV example.",
+        );
       if (c.operations[operationId]) return { duplicate: true, c };
       if (c.status === "running" || c.status === "analysing")
         throw new HttpError(409, "An operation is already active");
@@ -367,7 +388,9 @@ export class CaseAgent extends AIChatAgent<
       if (c.status === "running" || c.status === "analysing")
         throw new HttpError(409, "An operation is already active");
       const run = c.runs.find((r) => r.id === (runId || c.runs.at(-1)?.id));
-      if (!run)
+      if (c.intake && !c.scopes.at(-1)?.confirmedAt)
+        throw new HttpError(409, "Review and confirm the requirements first.");
+      if (!run && !c.intake)
         throw new HttpError(
           409,
           "Run the demonstration or import run evidence first",
@@ -380,7 +403,11 @@ export class CaseAgent extends AIChatAgent<
       try {
         await this.env.INVESTIGATE.create({
           id: workflowId,
-          params: { agentName: this.name, runId: run.id, revision: c.revision },
+          params: {
+            agentName: this.name,
+            runId: c.intake ? c.id : run!.id,
+            revision: c.revision,
+          },
         });
       } catch (e) {
         c.status = "failed";
@@ -405,6 +432,7 @@ export class CaseAgent extends AIChatAgent<
         artifacts: c.artifacts,
       } satisfies Bundle,
       sessionId: (await this.ctx.storage.get<string>("sessionId"))!,
+      intake: c.intake,
     };
   }
   async publish(
@@ -414,6 +442,7 @@ export class CaseAgent extends AIChatAgent<
     summary: string,
     explanationMode: Revision["explanationMode"],
     workflowId: string,
+    decision?: Revision["decision"],
   ) {
     return this.locked(async () => {
       const c = await this.data();
@@ -424,9 +453,18 @@ export class CaseAgent extends AIChatAgent<
         id: workflowId,
         runId,
         evidenceRevision,
+        scopeId: c.intake
+          ? c.scopes.at(-1)?.id
+          : c.runs.find((r) => r.id === runId)?.scopeId,
         findings,
         summary,
         explanationMode,
+        method: c.intake
+          ? decision?.mode === "live"
+            ? "clef"
+            : "offline"
+          : "deterministic",
+        decision,
         superseded: stale,
         createdAt: now(),
       });
@@ -439,7 +477,9 @@ export class CaseAgent extends AIChatAgent<
             ? "Scope divergence found"
             : findings.some((f) => f.status === "insufficient_evidence")
               ? "Evidence incomplete"
-              : "Scope verified",
+              : c.intake
+                ? "Requirements supported by model assessment"
+                : "Scope verified",
         summary,
         { runId },
       );
@@ -468,6 +508,11 @@ export class CaseAgent extends AIChatAgent<
   async append(bundle: Bundle) {
     return this.locked(async () => {
       const c = await this.data();
+      if (c.intake)
+        throw new HttpError(
+          409,
+          "Add documents through artifact intake for this case.",
+        );
       if (c.status === "running")
         throw new HttpError(409, "Wait for the demo run");
       const merged = structuredClone(c);
@@ -505,6 +550,62 @@ export class CaseAgent extends AIChatAgent<
       for (const f of merged.findings) f.superseded = true;
       await this.save(merged);
       return viewCase(merged);
+    });
+  }
+  async confirmRequirements(requirements: Requirement[]) {
+    return this.locked(async () => {
+      const c = await this.data();
+      if (!c.intake) throw new HttpError(409, "This is a CSV example.");
+      if (["running", "analysing"].includes(c.status))
+        throw new HttpError(409, "Wait for the assessment to finish.");
+      if (c.scopes.length >= 30)
+        throw new HttpError(429, "Scope version limit reached.");
+      const previous = c.scopes.at(-1)!;
+      const scope = {
+        ...previous,
+        id: uid(),
+        version: previous.version + 1,
+        requirements,
+        confirmedAt: now(),
+        provenance: "observed" as const,
+      };
+      c.scopes.push(scope);
+      c.revision++;
+      c.status = "ready";
+      c.findings.forEach((f) => (f.superseded = true));
+      event(
+        c,
+        "scope",
+        `Requirements v${scope.version} confirmed`,
+        requirements
+          .map((r) => r.text)
+          .join("\n")
+          .slice(0, 4000),
+        { scopeId: scope.id },
+      );
+      await this.save(c);
+      return viewCase(c);
+    });
+  }
+  async attachDocuments(documents: ImportedDocument[]) {
+    return this.locked(async () => {
+      const c = await this.data();
+      if (!c.intake)
+        throw new HttpError(409, "Use an evidence bundle for the CSV example.");
+      if (["running", "analysing"].includes(c.status))
+        throw new HttpError(409, "Wait for the assessment to finish.");
+      if (c.artifacts.length + documents.length > 30)
+        throw new HttpError(413, "Artifact limit reached.");
+      await addDocuments(c, documents);
+      if (new TextEncoder().encode(JSON.stringify(c)).length > 1800000)
+        throw new HttpError(413, "Case evidence limit reached.");
+      for (const a of c.artifacts)
+        await this.env.EVIDENCE.put(`${this.name}/${a.id}`, a.content);
+      c.revision++;
+      c.status = "ready";
+      c.findings.forEach((f) => (f.superseded = true));
+      await this.save(c);
+      return viewCase(c);
     });
   }
   async getArtifact(id: string) {
@@ -601,6 +702,12 @@ export class CaseAgent extends AIChatAgent<
           })),
           tool: selection.tool,
           result: context,
+          suppliedArtifacts: c.intake
+            ? c.artifacts
+                .filter((a) => a.name !== "conversation.json")
+                .slice(-4)
+                .map((a) => ({ name: a.name, text: a.content.slice(0, 1200) }))
+            : undefined,
           events: c.events.slice(-12).map((e) => ({
             id: e.id,
             title: e.title,
@@ -647,10 +754,23 @@ export class InvestigationWorkflow extends WorkflowEntrypoint<
       const checked = await step.do("Verify scope", async () => {
         const s = await this.env.EVIDENCE.get(snapshot.key);
         if (!s) throw new Error("Snapshot unavailable");
-        const data = await s.json<{ bundle: Bundle; sessionId: string }>();
+        const data = await s.json<{
+          bundle: Bundle;
+          sessionId: string;
+          intake?: CaseData["intake"];
+        }>();
+        if (data.intake) {
+          const assessed = await assessRequirements(this.env, data.sessionId, {
+            ...newCase("correct"),
+            ...data.bundle,
+            intake: data.intake,
+          });
+          return { ...assessed, sessionId: data.sessionId };
+        }
         return {
           findings: verify(data.bundle, e.payload.runId),
           sessionId: data.sessionId,
+          decision: undefined,
         };
       });
       const explanation = await step.do(
@@ -666,7 +786,7 @@ export class InvestigationWorkflow extends WorkflowEntrypoint<
             const answer = await modelJson(
               this.env,
               checked.sessionId,
-              'Explain deterministic findings without changing their statuses. JSON: {"text":string,"evidenceIds":string[]}.',
+              'Explain the supplied findings without changing statuses. For CLEF results, call them model assessments, not proof; probabilities are not guarantees. JSON: {"text":string,"evidenceIds":string[]}.',
               JSON.stringify(checked.findings),
               Answer,
             );
@@ -681,7 +801,7 @@ export class InvestigationWorkflow extends WorkflowEntrypoint<
             return {
               summary:
                 fallback +
-                "\nAI explanation unavailable; deterministic checks are retained.",
+                "\nAI explanation unavailable; recorded findings are retained.",
               mode: "unavailable" as const,
             };
           }
@@ -695,6 +815,7 @@ export class InvestigationWorkflow extends WorkflowEntrypoint<
           explanation.summary,
           explanation.mode,
           e.instanceId,
+          checked.decision,
         );
         await this.env.EVIDENCE.delete(snapshot.key);
       });
@@ -707,7 +828,7 @@ export class InvestigationWorkflow extends WorkflowEntrypoint<
 
 async function signingKey(env: Env) {
   if (env.SESSION_SIGNING_SECRET) return env.SESSION_SIGNING_SECRET;
-  if (env.MODE === "offline")
+  if (env.MODE === "offline" || env.LOCAL_DEVELOPMENT === "true")
     return env.SESSIONS.get(env.SESSIONS.idFromName("local-key")).localKey();
   throw new HttpError(503, "Session signing secret is not configured");
 }
@@ -741,6 +862,16 @@ export default {
     try {
       const url = new URL(req.url),
         path = url.pathname;
+      const local = ["localhost", "127.0.0.1", "::1", "[::1]"].includes(
+        url.hostname,
+      );
+      if (env.LOCAL_DEVELOPMENT === "true" && !local)
+        throw new HttpError(
+          503,
+          "Local development is restricted to localhost.",
+        );
+      if (path === "/api/install-check" && req.method === "POST")
+        return await installationCheck(req, env);
       if (
         env.MODE === "offline" &&
         !["localhost", "127.0.0.1", "::1"].includes(url.hostname)
@@ -754,13 +885,17 @@ export default {
           mode: env.MODE,
           siteKey: env.TURNSTILE_SITE_KEY,
           model: env.MODEL_ID,
+          local,
         });
       if (path === "/api/session" && req.method === "POST") {
         sameOrigin(req);
         const body = z
           .object({ token: z.string().max(2048).optional() })
           .parse(await readJson(req, 5000));
-        if (env.MODE === "live") {
+        if (
+          env.MODE === "live" &&
+          !(local && env.LOCAL_DEVELOPMENT === "true")
+        ) {
           if (
             !env.TURNSTILE_SECRET_KEY ||
             !env.SESSION_SIGNING_SECRET ||
@@ -834,11 +969,19 @@ export default {
             expiresAt: s.expiresAt,
           });
         if (
-          (path === "/api/cases" || path === "/api/import") &&
+          (path === "/api/cases" ||
+            path === "/api/import" ||
+            path === "/api/intake") &&
           req.method === "POST"
         ) {
           let c: CaseData;
-          if (path === "/api/import") {
+          if (path === "/api/intake") {
+            c = await intakeCase(
+              env,
+              s.id,
+              IntakeSchema.parse(await readJson(req)),
+            );
+          } else if (path === "/api/import") {
             const b = await bundleFrom(req);
             c = { ...newCase("correct"), ...b, findings: [], revision: 1 };
           } else {
@@ -848,6 +991,11 @@ export default {
             c = newCase(scenario);
           }
           c.expiresAt = s.expiresAt;
+          if (new TextEncoder().encode(JSON.stringify(c)).length > 1800000)
+            throw new HttpError(
+              413,
+              "Case evidence exceeds the local storage limit. Choose a smaller conversation or artifact excerpt.",
+            );
           await s.registry.add({
             id: c.id,
             title: c.title,
@@ -874,6 +1022,24 @@ export default {
             .object({ selection: z.enum(["filtered", "project"]) })
             .parse(await readJson(req, 5000));
           return json(await a.confirm(selection));
+        }
+        if (req.method === "POST" && action === "requirements") {
+          const { requirements } = z
+            .object({ requirements: z.array(RequirementSchema).min(1).max(12) })
+            .strict()
+            .parse(await readJson(req, 20000));
+          if (
+            new Set(requirements.map((r) => r.id)).size !== requirements.length
+          )
+            throw new HttpError(400, "Requirement IDs must be unique.");
+          return json(await a.confirmRequirements(requirements));
+        }
+        if (req.method === "POST" && action === "documents") {
+          const { documents } = z
+            .object({ documents: z.array(DocumentSchema).min(1).max(8) })
+            .strict()
+            .parse(await readJson(req));
+          return json(await a.attachDocuments(documents));
         }
         if (req.method === "POST" && action === "run") {
           const { operationId } = z
@@ -912,8 +1078,10 @@ export default {
               headers: {
                 "Content-Type": isCsv
                   ? "text/csv; charset=utf-8"
-                  : "application/json",
-                "Content-Disposition": `attachment; filename="${isCsv ? "atlas-export.csv" : "evidence.json"}"`,
+                  : artifact.kind === "document"
+                    ? "text/plain; charset=utf-8"
+                    : "application/json",
+                "Content-Disposition": `attachment; filename="${isCsv ? "atlas-export.csv" : artifact.kind === "document" ? artifact.name.replace(/[^a-zA-Z0-9._-]/g, "_") : "evidence.json"}"`,
                 "Cache-Control": "no-store",
                 "X-Content-Type-Options": "nosniff",
               },

@@ -12,7 +12,7 @@ React, TypeScript, Vite, Cloudflare Workers, Agents SDK, Durable Objects, Workfl
 
 ## Users
 
-Engineering leaders and developers investigating whether an AI-assisted software change fulfilled the approved scope. The public demo also serves hiring reviewers evaluating implementation quality.
+Engineering leaders and developers investigating whether an AI-assisted deliverable fulfilled the user's request. The downloadable local app also serves hiring reviewers evaluating implementation quality.
 
 ## Product Purpose
 
@@ -24,11 +24,11 @@ Connect agreed scope to observed delivery with explicit evidence references and 
 
 ## Operating Context
 
-Anonymous, isolated 24-hour reviewer sessions. A working synthetic project dashboard supports a bounded CSV export configuration change. JSON bundles support imported evidence. Real model calls and live operations are visibly distinguished from offline fixtures and injected faults.
+Localhost app downloaded from GitHub, with isolated 24-hour case sessions. Start with a public ChatGPT or Claude shared link; fall back to exported/pasted history or original prompt plus artifact. A suggested synthetic CSV dashboard provides deterministic scope checks. Real model calls are visibly distinguished from offline fixtures and injected faults.
 
 ## Capabilities and Constraints
 
-Three scenarios: correct delivery, broader-than-approved export, and incomplete evidence. Durable chat, workflow recovery, report export, case deletion, strict quotas, private artifacts. No arbitrary generated code, URL fetching, production integrations, employer records, or hardcoded secrets.
+Live CLEF probabilities assess reviewed requirements against general supplied artifacts. Llama drafts requirements and explains results; missing evidence and weak decisions remain unresolved. ChatGPT/Claude JSON and labelled text imports, public HTTPS link intake, text/code/CSV/JSON/PDF/DOCX extraction, durable chat, report export, scope versions and private local storage. Public URL fetching is local-only and blocks private networks; no imported code or page script executes. Three CSV scenarios remain suggestions. No production integrations, employer data or hardcoded secrets.
 
 ## Brand Commitments
 

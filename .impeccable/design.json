@@ -1,0 +1,370 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-07T20:09:50.593Z",
+  "title": "Design System: IntentTrace",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Primary",
+        "tonalRamp": [
+          "oklch(15.0% 0.2100 260.4)",
+          "oklch(26.4% 0.2100 260.4)",
+          "oklch(37.9% 0.2100 260.4)",
+          "oklch(49.3% 0.2100 260.4)",
+          "oklch(60.7% 0.2100 260.4)",
+          "oklch(72.1% 0.2100 260.4)",
+          "oklch(83.6% 0.2100 260.4)",
+          "oklch(95.0% 0.2100 260.4)"
+        ]
+      },
+      "primary-hover": {
+        "role": "primary",
+        "displayName": "Primary Hover",
+        "tonalRamp": [
+          "oklch(15.0% 0.1852 260.1)",
+          "oklch(26.4% 0.1852 260.1)",
+          "oklch(37.9% 0.1852 260.1)",
+          "oklch(49.3% 0.1852 260.1)",
+          "oklch(60.7% 0.1852 260.1)",
+          "oklch(72.1% 0.1852 260.1)",
+          "oklch(83.6% 0.1852 260.1)",
+          "oklch(95.0% 0.1852 260.1)"
+        ]
+      },
+      "navy": {
+        "role": "neutral",
+        "displayName": "Navy",
+        "tonalRamp": [
+          "oklch(15.0% 0.0700 256.8)",
+          "oklch(26.4% 0.0700 256.8)",
+          "oklch(37.9% 0.0700 256.8)",
+          "oklch(49.3% 0.0700 256.8)",
+          "oklch(60.7% 0.0700 256.8)",
+          "oklch(72.1% 0.0700 256.8)",
+          "oklch(83.6% 0.0700 256.8)",
+          "oklch(95.0% 0.0700 256.8)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "tonalRamp": [
+          "oklch(15.0% 0.0585 257.1)",
+          "oklch(26.4% 0.0585 257.1)",
+          "oklch(37.9% 0.0585 257.1)",
+          "oklch(49.3% 0.0585 257.1)",
+          "oklch(60.7% 0.0585 257.1)",
+          "oklch(72.1% 0.0585 257.1)",
+          "oklch(83.6% 0.0585 257.1)",
+          "oklch(95.0% 0.0585 257.1)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted",
+        "tonalRamp": [
+          "oklch(15.0% 0.0501 254.9)",
+          "oklch(26.4% 0.0501 254.9)",
+          "oklch(37.9% 0.0501 254.9)",
+          "oklch(49.3% 0.0501 254.9)",
+          "oklch(60.7% 0.0501 254.9)",
+          "oklch(72.1% 0.0501 254.9)",
+          "oklch(83.6% 0.0501 254.9)",
+          "oklch(95.0% 0.0501 254.9)"
+        ]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Canvas",
+        "tonalRamp": [
+          "oklch(15.0% 0.0062 255.5)",
+          "oklch(26.4% 0.0062 255.5)",
+          "oklch(37.9% 0.0062 255.5)",
+          "oklch(49.3% 0.0062 255.5)",
+          "oklch(60.7% 0.0062 255.5)",
+          "oklch(72.1% 0.0062 255.5)",
+          "oklch(83.6% 0.0062 255.5)",
+          "oklch(95.0% 0.0062 255.5)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface",
+        "tonalRamp": [
+          "oklch(15.0% 0.0000 89.9)",
+          "oklch(26.4% 0.0000 89.9)",
+          "oklch(37.9% 0.0000 89.9)",
+          "oklch(49.3% 0.0000 89.9)",
+          "oklch(60.7% 0.0000 89.9)",
+          "oklch(72.1% 0.0000 89.9)",
+          "oklch(83.6% 0.0000 89.9)",
+          "oklch(95.0% 0.0000 89.9)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Line",
+        "tonalRamp": [
+          "oklch(15.0% 0.0207 254.9)",
+          "oklch(26.4% 0.0207 254.9)",
+          "oklch(37.9% 0.0207 254.9)",
+          "oklch(49.3% 0.0207 254.9)",
+          "oklch(60.7% 0.0207 254.9)",
+          "oklch(72.1% 0.0207 254.9)",
+          "oklch(83.6% 0.0207 254.9)",
+          "oklch(95.0% 0.0207 254.9)"
+        ]
+      },
+      "selected": {
+        "role": "neutral",
+        "displayName": "Selected",
+        "tonalRamp": [
+          "oklch(15.0% 0.0195 260.2)",
+          "oklch(26.4% 0.0195 260.2)",
+          "oklch(37.9% 0.0195 260.2)",
+          "oklch(49.3% 0.0195 260.2)",
+          "oklch(60.7% 0.0195 260.2)",
+          "oklch(72.1% 0.0195 260.2)",
+          "oklch(83.6% 0.0195 260.2)",
+          "oklch(95.0% 0.0195 260.2)"
+        ]
+      },
+      "supported-bg": {
+        "role": "semantic",
+        "displayName": "Supported Bg",
+        "tonalRamp": [
+          "oklch(15.0% 0.0137 174.2)",
+          "oklch(26.4% 0.0137 174.2)",
+          "oklch(37.9% 0.0137 174.2)",
+          "oklch(49.3% 0.0137 174.2)",
+          "oklch(60.7% 0.0137 174.2)",
+          "oklch(72.1% 0.0137 174.2)",
+          "oklch(83.6% 0.0137 174.2)",
+          "oklch(95.0% 0.0137 174.2)"
+        ]
+      },
+      "supported-ink": {
+        "role": "semantic",
+        "displayName": "Supported Ink",
+        "tonalRamp": [
+          "oklch(15.0% 0.0691 178.4)",
+          "oklch(26.4% 0.0691 178.4)",
+          "oklch(37.9% 0.0691 178.4)",
+          "oklch(49.3% 0.0691 178.4)",
+          "oklch(60.7% 0.0691 178.4)",
+          "oklch(72.1% 0.0691 178.4)",
+          "oklch(83.6% 0.0691 178.4)",
+          "oklch(95.0% 0.0691 178.4)"
+        ]
+      },
+      "warning-bg": {
+        "role": "semantic",
+        "displayName": "Warning Bg",
+        "tonalRamp": [
+          "oklch(15.0% 0.0287 77.6)",
+          "oklch(26.4% 0.0287 77.6)",
+          "oklch(37.9% 0.0287 77.6)",
+          "oklch(49.3% 0.0287 77.6)",
+          "oklch(60.7% 0.0287 77.6)",
+          "oklch(72.1% 0.0287 77.6)",
+          "oklch(83.6% 0.0287 77.6)",
+          "oklch(95.0% 0.0287 77.6)"
+        ]
+      },
+      "warning-ink": {
+        "role": "semantic",
+        "displayName": "Warning Ink",
+        "tonalRamp": [
+          "oklch(15.0% 0.0981 60.9)",
+          "oklch(26.4% 0.0981 60.9)",
+          "oklch(37.9% 0.0981 60.9)",
+          "oklch(49.3% 0.0981 60.9)",
+          "oklch(60.7% 0.0981 60.9)",
+          "oklch(72.1% 0.0981 60.9)",
+          "oklch(83.6% 0.0981 60.9)",
+          "oklch(95.0% 0.0981 60.9)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "title": {
+        "displayName": "Case title",
+        "purpose": "Compact case identity; system sans direction approved by the user."
+      },
+      "installer-title": {
+        "displayName": "Setup title",
+        "purpose": "Introduces the single installation task; not the case timeline scale."
+      },
+      "intake-title": {
+        "displayName": "Conversation intake title",
+        "purpose": "Introduces the primary local intake form; 25px desktop and 21px below 800px."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "evidence-scroll",
+        "value": "smooth",
+        "purpose": "Evidence references scroll to their timeline event; reduced-motion CSS uses auto."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "desk-compact",
+        "value": "1150px"
+      },
+      {
+        "name": "desk-stacked",
+        "value": "850px"
+      },
+      {
+        "name": "intake-stacked",
+        "value": "800px"
+      },
+      {
+        "name": "installer-stacked",
+        "value": "700px"
+      }
+    ],
+    "recording": {
+      "basis": "Current source code and user-approved option A; no browser acceptance implied.",
+      "sources": [
+        "src/client/main.tsx",
+        "src/client/style.css",
+        "installer/public/index.html",
+        "installer/public/style.css",
+        "installer/public/app.js",
+        "src/client/intake.tsx",
+        "src/client/files.ts"
+      ],
+      "tonalRampStatus": "Generated OKLCH preview ramps only; not additional implementation tokens.",
+      "knownDrift": [
+        "Installer palette differs slightly from case desk palette.",
+        "Inter is listed but not loaded; actual font depends on system availability.",
+        "Approval and build-phase records are stale and were not repaired by documentation."
+      ],
+      "finalSourceUpdate": "Primary local conversation intake, fallback artifacts, reviewed requirements, supplied transcript view, and CLEF probability presentation documented. Initial desktop and mobile intake captures inspected; other states remain source-derived.",
+      "inspectedCaptures": [
+        ".local/validation/local-intake-desktop.jpg",
+        ".local/validation/local-intake-mobile.jpg"
+      ]
+    }
+  },
+  "components": [
+    {
+      "name": "Primary action",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The main case action, with hover, focus, and disabled states.",
+      "html": "<button class=\"ds-primary\">Run demonstration</button>",
+      "css": ".ds-primary{font:600 14px Inter,\"Segoe UI\",sans-serif;padding:11px 15px;border:1px solid transparent;border-radius:6px;cursor:pointer;background:var(--blue,#075cdd);color:white}.ds-primary:hover{background:#034ebc}.ds-primary:focus-visible{outline:3px solid #4c85ed;outline-offset:3px}.ds-primary:disabled{opacity:.5;cursor:not-allowed}"
+    },
+    {
+      "name": "Secondary action",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Supporting actions retain a visible border.",
+      "html": "<button class=\"ds-secondary\">Show all evidence</button>",
+      "css": ".ds-secondary{font:600 14px Inter,\"Segoe UI\",sans-serif;padding:11px 15px;border:1px solid transparent;border-radius:6px;cursor:pointer;background:white;color:var(--blue,#075cdd);border-color:#c6d6ed}.ds-secondary:hover{background:#eaf2ff}.ds-secondary:focus-visible{outline:3px solid #4c85ed;outline-offset:3px}.ds-secondary:disabled{opacity:.5;cursor:not-allowed}"
+    },
+    {
+      "name": "Investigation question",
+      "kind": "input",
+      "description": "Labelled, resizable chat input with bounded height.",
+      "html": "<label class=\"ds-label\" for=\"ds-question\">Ask about this case</label><textarea class=\"ds-question\" id=\"ds-question\" placeholder=\"Where did delivery diverge?\"></textarea>",
+      "css": ".ds-label{display:block;font:13px Inter,\"Segoe UI\",sans-serif;color:#132743;margin-bottom:8px}.ds-question{font:13px Inter,\"Segoe UI\",sans-serif;color:#132743;background:white;resize:vertical;width:100%;min-height:85px;max-height:220px;border:1px solid #afc1d9;border-radius:6px;padding:12px}.ds-question:focus-visible{outline:3px solid #4c85ed;outline-offset:3px}"
+    },
+    {
+      "name": "Case navigation",
+      "kind": "nav",
+      "description": "A current case within the navy shell.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Cases\"><button class=\"ds-current\" aria-current=\"page\">CSV export / Project Atlas</button><button>Another case</button></nav>",
+      "css": ".ds-nav{background:var(--navy,#10294b);padding:18px;display:grid;gap:8px}.ds-nav button{font:400 13px/1.5 Inter,\"Segoe UI\",sans-serif;background:transparent;color:white;text-align:left;border:1px solid transparent;border-radius:6px;padding:11px 15px;cursor:pointer}.ds-nav .ds-current{background:#245897}.ds-nav button:focus-visible{outline:3px solid #4c85ed;outline-offset:3px}"
+    },
+    {
+      "name": "Inference mode badge",
+      "kind": "chip",
+      "description": "Read-only indication of live inference or offline fixtures.",
+      "html": "<span class=\"ds-badge\">Offline fixtures</span>",
+      "css": ".ds-badge{display:inline-block;font:12px Inter,\"Segoe UI\",sans-serif;white-space:nowrap;background:#e4edff;color:#124ca7;border-radius:20px;padding:7px 12px}"
+    },
+    {
+      "name": "Timeline event",
+      "kind": "card",
+      "refersTo": "event",
+      "description": "Inspectable chronological event with an explicit pressed state.",
+      "html": "<button class=\"ds-event\" aria-pressed=\"true\"><strong>Export completed</strong><p>The export includes 24 rows.</p><small>Observed event · 1 artifact</small></button>",
+      "css": ".ds-event{display:block;width:100%;text-align:left;padding:17px;border:1px solid var(--line,#dce6f3);border-radius:6px;background:white;color:#132743;cursor:pointer;font:400 13px Inter,\"Segoe UI\",sans-serif}.ds-event strong{font-size:14px;line-height:1.5}.ds-event p{margin:9px 0;color:var(--muted,#526782);line-height:1.6}.ds-event small{font-size:12px;color:var(--muted,#526782)}.ds-event:hover,.ds-event[aria-pressed=\"true\"]{background:#eaf2ff;border-color:#6997de}.ds-event:focus-visible{outline:3px solid #4c85ed;outline-offset:3px}"
+    },
+    {
+      "name": "Attention status",
+      "kind": "custom",
+      "refersTo": "status-warning",
+      "description": "Written investigation result paired with the amber semantic color.",
+      "html": "<div class=\"ds-status\"><strong>Evidence incomplete · Review required</strong><span>Scope v1</span></div>",
+      "css": ".ds-status{display:flex;flex-wrap:wrap;justify-content:space-between;gap:14px;background:#fff2df;color:#794409;padding:15px 17px;border-radius:6px;font:13px/1.5 Inter,\"Segoe UI\",sans-serif}.ds-status span{font-size:12px}"
+    },
+    {
+      "name": "Project task table",
+      "kind": "custom",
+      "description": "A recorded task preview uses a labelled filter, row count, source label, and a horizontally scrollable table. Filter and download behavior are supplied by React in the application.",
+      "html": "<section class=\"ds-tasks\"><label for=\"ds-task-filter\">Show tasks <select id=\"ds-task-filter\"><option>Open tasks</option><option>All project tasks</option></select></label><p>1 of 1 tasks · Recorded source snapshot</p><div class=\"ds-table-scroll\"><table><thead><tr><th>Task</th><th>Title</th><th>Status</th></tr></thead><tbody><tr><th>AT-001</th><td>Synthetic task example</td><td>open</td></tr></tbody></table></div></section>",
+      "css": ".ds-tasks{font:14px Inter,\"Segoe UI\",sans-serif;color:#132743}.ds-tasks select{font:inherit;padding:9px;border:1px solid #afc1d9;border-radius:6px;color:inherit;margin-left:7px;background:white}.ds-tasks select:focus-visible{outline:3px solid #4c85ed;outline-offset:3px}.ds-tasks p{font-size:12px;line-height:1.6;color:var(--muted,#526782)}.ds-table-scroll{overflow-x:auto}.ds-tasks table{width:100%;border-collapse:collapse;font-size:13px;margin:24px 0}.ds-tasks th,.ds-tasks td{padding:12px;text-align:left;border-bottom:1px solid var(--line,#dce6f3)}"
+    },
+    {
+      "name": "Shared conversation field",
+      "kind": "input",
+      "description": "Primary local intake entry. The read action is disabled until the URL is present and local fetching is available; this snippet demonstrates the empty state.",
+      "html": "<div class=\"ds-link\"><label for=\"ds-shared-link\">ChatGPT or Claude shared conversation link</label><div class=\"ds-entry\"><input id=\"ds-shared-link\" type=\"url\" required placeholder=\"https://chatgpt.com/share/… or https://claude.ai/share/…\"><button disabled>Read shared conversation</button></div></div>",
+      "css": ".ds-link{font:16px Inter,\"Segoe UI\",sans-serif;color:#132743}.ds-link label{display:block}.ds-entry{display:flex;align-items:flex-start;gap:10px}.ds-entry input{font:inherit;min-width:0;width:100%;margin:8px 0 16px;padding:12px;border:1px solid #aebfd7;border-radius:5px;background:white;color:#132743}.ds-entry button{margin-top:8px;flex-shrink:0;padding:11px 15px;border:1px solid transparent;border-radius:6px;background:var(--blue,#075cdd);color:white;font:600 14px Inter,\"Segoe UI\",sans-serif;cursor:pointer}.ds-entry button:hover{background:#034ebc}.ds-entry button:disabled{opacity:.5;cursor:not-allowed}.ds-entry input:focus-visible,.ds-entry button:focus-visible{outline:3px solid #4c85ed;outline-offset:3px}@media(max-width:800px){.ds-entry{flex-direction:column;gap:0}.ds-entry input{margin-bottom:0}.ds-entry button{width:100%;margin:10px 0}}"
+    },
+    {
+      "name": "Decision probability row",
+      "kind": "custom",
+      "description": "Illustrative probability row. Production values come from the returned CLEF assessment, with model identity shown above the rows.",
+      "html": "<div class=\"ds-probability\"><span>supported</span><meter min=\"0\" max=\"1\" value=\"0.75\" aria-label=\"supported probability\"></meter><strong>75.0%</strong></div>",
+      "css": ".ds-probability{display:grid;grid-template-columns:140px minmax(50px,1fr) 55px;gap:10px;align-items:center;font:12px Inter,\"Segoe UI\",sans-serif;color:#132743;margin:7px 0}.ds-probability meter{width:100%;accent-color:var(--blue,#075cdd)}@media(max-width:800px){.ds-probability{grid-template-columns:120px minmax(35px,1fr) 50px}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Case Desk",
+    "overview": "The user selected option A: a navy navigation shell, a pale working surface, a chronological case file, and a supporting evidence inspector. The interface uses familiar controls and compact, readable text to make an investigation inspectable. The primary downloadable local app now opens with conversation intake: a public shared link, followed by artifacts and reviewed requirements. Evidence, versioned scope, and explicit status labels carry the visual hierarchy. The synthetic CSV case remains a secondary way to explore the same desk.\n\nThis document records the current implementation in `src/client/main.tsx`, `src/client/intake.tsx`, `src/client/files.ts`, `src/client/style.css`, and `installer/public/`. It is a source-based design record, not a claim that visual acceptance, deployment validation, or the original mockup fidelity gates have passed. Desktop and mobile intake captures were inspected for this update; they show only the initial intake state. The optional Cloudflare installer shares the direction while using a more spacious single-task layout.",
+    "keyCharacteristics": [
+      "Navy navigation and pale work surfaces.",
+      "Cobalt actions, selected evidence, and visible focus.",
+      "Teal supported states and amber states requiring attention, each with text.",
+      "A chronological spine connecting events to an evidence inspector.",
+      "Conversation intake first, with explicit review before assessment.",
+      "Flat surfaces, restrained borders, and system sans typography."
+    ],
+    "rules": [
+      {
+        "name": "The Labelled Status Rule",
+        "body": "Pair semantic color with a written status; color alone cannot communicate the investigation result.",
+        "section": "colors"
+      },
+      {
+        "name": "The Flat Surface Rule",
+        "body": "Use borders and tonal separation for the established desk and installer surfaces; preserve their existing flat treatment.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** preserve the navy shell, pale work surface, and cobalt interaction hierarchy.",
+      "**Do** pair color with explicit state and provenance labels.",
+      "**Do** retain the evidence-to-event connection and the ability to reset a selection.",
+      "**Do** distinguish current findings from previous findings and live inference from offline fixtures.",
+      "**Do** keep the user's conversation primary and require explicit review before assessing drafted requirements.",
+      "**Do** use visible keyboard focus, labelled controls, wrapping layouts, and reduced-motion behavior.",
+      "**Do** verify the rendered desktop and mobile layouts after changes; this record is not acceptance evidence."
+    ],
+    "donts": [
+      "**Don't** replace the approved system sans direction with an unapproved display-font identity.",
+      "**Don't** add decorative gradients, illustrations, oversized marketing headings, or invented KPIs to the case desk.",
+      "**Don't** present imported claims or unverified artifacts as established observations.",
+      "**Don't** turn the installer's small palette differences into new reusable color roles.",
+      "**Don't** infer passed design or deployment gates from the existence of this document."
+    ]
+  }
+}

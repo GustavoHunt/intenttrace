@@ -1,0 +1,7 @@
+{
+  "title": "Synthetic release summary",
+  "messages": [
+    { "id": "user-1", "role": "user", "content": "Write a release summary with a heading, exactly three bullet points, and no internal notes." },
+    { "id": "assistant-1", "role": "assistant", "content": "The release summary is attached separately." }
+  ]
+}

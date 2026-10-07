@@ -2,24 +2,30 @@
   "tool": "build-phase",
   "version": 2,
   "startedAt": "2026-10-06T21:26:10.463Z",
-  "comp": null,
+  "comp": ".impeccable/mocks/a.png",
   "direction": "0ea0aa7d",
-  "breakpoint": null,
+  "breakpoint": "1505x1045",
   "artifact": "src/client/App.tsx",
-  "phase": "comps",
+  "phase": "spec",
   "phases": {
     "comps": {
-      "status": "open",
+      "status": "closed",
       "openedAt": "2026-10-06T21:26:10.463Z",
-      "closedAt": null,
-      "attempts": 0,
+      "closedAt": "2026-10-07T19:05:43.716Z",
+      "attempts": 1,
       "notes": [],
-      "gate": null,
+      "gate": {
+        "ok": true,
+        "reasons": [],
+        "summary": "3 comps, 1 approved",
+        "approved": ".impeccable/mocks/a.png",
+        "at": "2026-10-07T19:05:43.716Z"
+      },
       "forced": null
     },
     "spec": {
-      "status": "pending",
-      "openedAt": null,
+      "status": "open",
+      "openedAt": "2026-10-07T19:05:43.731Z",
       "closedAt": null,
       "attempts": 0,
       "notes": [],
@@ -81,6 +87,11 @@
       "forced": null
     }
   },
-  "finish": null,
+  "finish": {
+    "disposition": "fix",
+    "at": "2026-10-07T19:10:16.309Z",
+    "phaseAtFinish": "spec",
+    "artifactInputsSha256": "723425b3e6cc17bb82f4e1bf398ea317311edcb6d6ad004c6808f388bec07bd0"
+  },
   "sessionId": "01a1129a-01c9-7813-a623-f348653ee2e5"
 }

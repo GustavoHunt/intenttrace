@@ -3,6 +3,8 @@
 ```mermaid
 flowchart LR
   Browser[React case file + chat] --> Worker[Worker / session boundary]
+  Browser --> Importer[Local Vite / public URL importer]
+  Importer --> Sources[Public shared conversation or artifact]
   Turnstile --> Worker
   Worker --> Registry[Session registry DO]
   Worker --> Agent[Case Agent / SQLite]
@@ -10,12 +12,13 @@ flowchart LR
   Agent --> R2[Private evidence / R2]
   Workflow --> R2
   Workflow --> Verifier[Deterministic scope verifier]
+  Workflow --> CLEF[Workers AI CLEF / typed probabilities]
   Agent --> AI[Workers AI + AI Gateway]
   Workflow --> AI
   AI --> Budget[Atomic model-call allowance]
 ```
 
-The budget reservation occurs before the model request; the diagram groups responsibilities rather than execution order. React implementation is pending mockup approval.
+The budget reservation occurs before the model request; the diagram groups responsibilities rather than execution order. The React case desk implements the selected mockup A with a chronological timeline, evidence inspector and persistent investigation chat.
 
 ## Trust and data ownership
 
@@ -24,6 +27,14 @@ The Worker verifies a signed cookie and the session registry before resolving an
 Case data lives in a dedicated SQLite table inside the case Durable Object. SDK state broadcasts carry only status/revision metadata. SDK chat persistence uses its own tables. Case mutation methods are server-side RPC methods, not decorated browser-callable tools. A case-local mutation queue serializes scope changes and run reservations. Session case-list changes are atomic. A global Durable Object reserves model calls atomically, while the Workers rate limit binding is an additional burst defense, not a strict spending ledger.
 
 ## Execution and investigation
+
+The primary path imports a public conversation snapshot, JSON export or labelled transcript, or accepts an original prompt with artifacts. The Node-based Vite importer fetches only explicit public HTTPS URLs, pins validated DNS addresses, revalidates redirects, rejects private networks and never forwards cookies. Pages are parsed without script execution. The importer is local-only; deployment retains manual/export intake.
+
+The client extracts bounded PDF/DOCX text without rendering untrusted HTML or running code. The server hashes exact extracted UTF-8 text and separately retains a supplied original-file digest. Binary originals are not stored. Conversation provenance is supplied, with reception time distinct from historical claims.
+
+For general cases, Llama drafts requirements from user messages. Explicit review creates a scope version; this current approval does not prove original approval timing. A Workflow snapshots the version and artifacts, calls the actual CLEF model with typed choice questions, validates complete probabilities and applies conservative thresholds. Missing artifacts or weak decisions remain insufficient. Encoded CLEF input is capped at 60,000 bytes including questions; excerpts record truncation. Llama explains statuses without changing them. Offline cases never synthesize CLEF outputs. New documents or scopes supersede old findings.
+
+The CSV example retains a separate deterministic path:
 
 1. User confirms a scope version.
 2. A unique operation ID reserves a run. Replaying it returns the existing state.
@@ -51,11 +62,14 @@ Old runs retain their original scope ID. A later scope version never changes the
 | Vectorize / AI Search       | Defer: small structured cases can be verified directly; semantic retrieval would add ambiguity.              |
 | Queues                      | Defer: Workflows already owns the background investigation lifecycle.                                        |
 | Realtime / voice            | Defer: text chat meets the assignment and makes evidence references easier to inspect.                       |
-| Browser Rendering / Sandbox | Defer: no web crawling or arbitrary repository execution is needed for the bounded export demonstration.     |
+| Browser Run                 | The installer binds Browser Run and verifies fixed HTML rendering. Arbitrary URL investigation is not implemented. |
+| Sandbox                     | Defer arbitrary repository execution; the demonstration executor is allowlisted. |
 | Access                      | Optional protection for a private staging hostname; the public demo uses anonymous isolated sessions.        |
 | Secrets Store               | Optional organization-wide secret reuse; ordinary Workers Secrets is sufficient for this single application. |
 
 ## Failure semantics
+
+The OAuth installer is a separate Worker with an installation Durable Object. It pins the application release checksum and stores only a progress receipt plus an encrypted credential vault. The release bundle stays in Static Assets to avoid Durable Object value-size limits. Provisioning advances one checkpoint at a time and retains completed infrastructure on interruption. See [installation](INSTALLATION.md) for credential lifecycle and operator prerequisites.
 
 A failed model proposal does not silently run a fixture in live mode. Deterministic verification can still complete if only the explanatory model call fails. A duplicate operation does not create another export. Failed operations preserve evidence; the client can request another investigation. After case deletion, reads fail and active Workflow execution is terminated where possible. R2 lifecycle rules handle orphaned snapshots.
 
