@@ -34,21 +34,35 @@ describe("session AI settings", () => {
       expect(() => SettingsSchema.parse(input)).toThrow();
   });
   it("switches Clef off, on and off without changing the provider connection", async () => {
-    const run = vi.fn().mockResolvedValue({
-      model: "synthetic-clef",
-      answers: {
-        req_1: {
-          type: "choice",
-          choice: "supported",
-          probabilities: {
-            supported: 0.9,
-            contradicted: 0.05,
-            insufficient_evidence: 0.05,
+    const run = vi
+      .fn()
+      .mockResolvedValueOnce({
+        response: JSON.stringify({
+          proposedStatus: "supported",
+          explanation: "The supplied summary is present.",
+          observations: ["A summary was supplied."],
+          gaps: [],
+          nextSteps: [],
+          citations: [
+            { quoteId: "Q1" },
+          ],
+        }),
+      })
+      .mockResolvedValue({
+        model: "synthetic-clef",
+        answers: {
+          req_1: {
+            type: "choice",
+            choice: "supported",
+            probabilities: {
+              supported: 0.9,
+              contradicted: 0.05,
+              insufficient_evidence: 0.05,
+            },
+            confidence: 0.9,
           },
-          confidence: 0.9,
         },
-      },
-    });
+      });
     const reserve = vi.fn().mockResolvedValue(true);
     const env = {
       AI: { run },
@@ -62,7 +76,7 @@ describe("session AI settings", () => {
         id: "artifact",
         name: "summary.txt",
         kind: "document",
-        content: "Summary",
+        content: "Summary of synthetic delivery",
         sha256: "synthetic",
         createdAt: "synthetic",
       },
@@ -78,12 +92,12 @@ describe("session AI settings", () => {
       (await assessRequirements(started, "synthetic-session", c)).findings[0]
         .status,
     ).toBe("supported");
-    expect(run).toHaveBeenCalledTimes(1);
+    expect(run).toHaveBeenCalledTimes(2);
     expect(
       (await assessRequirements(next, "synthetic-session", c)).decision.mode,
     ).toBe("offline");
-    expect(run).toHaveBeenCalledTimes(1);
-    expect(reserve).toHaveBeenCalledTimes(1);
+    expect(run).toHaveBeenCalledTimes(2);
+    expect(reserve).toHaveBeenCalledTimes(2);
   });
   it("also blocks new Llama calls when the session is offline", async () => {
     const run = vi.fn();

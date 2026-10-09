@@ -57,7 +57,7 @@ export function ApplicationSettings({
       </label>
       <p id="ai-setting-description">
         {settings?.aiAvailable
-          ? "When on, Clef assesses artifacts and Llama drafts requirements and answers questions. Supplied context goes to your Cloudflare account and uses its AI allowance. When off, new requests use no AI."
+          ? "When on, Cloudflare reads public artifact pages, Llama examines relevant evidence, and Clef assesses each requirement. Findings include source quotations and unresolved gaps. Supplied context goes to your Cloudflare account and uses its AI and browser allowances. When off, new requests use neither service."
           : "Live AI needs a configured Workers AI binding and AI Gateway. Follow the local setup instructions, then restart the app once to connect those services. This switch works without a restart after setup."}
       </p>
       {!settings?.aiAvailable && (
@@ -107,7 +107,7 @@ export function AssessmentGuide({
   return (
     <section className="assessment-guide" aria-labelledby="guide-heading">
       <div className="guide-heading">
-        <h3 id="guide-heading">Your next step</h3>
+        <h3 id="guide-heading" tabIndex={-1}>Your next step</h3>
         <button className="secondary" onClick={onDismiss}>
           <X size={15} aria-hidden="true" /> Skip tour
         </button>

@@ -42,3 +42,14 @@ All routes are same-origin. Session cookies are HttpOnly. POST bodies use `appli
 | `/agents/case-agent/:sessionId_:caseId`    | Cloudflare Agent chat/state protocol, checked against session ownership before routing.                  |
 
 Limits: five cases per session, 30 runs per case, 500 events, 100 artifacts, 30 scope versions, 1 MiB per upload and 2 MiB total case state. Chat questions are limited to 2,000 characters and 100 persisted messages. Model context is bounded to 16 KB per request. Import limits are structural and byte-based; unsupported evidence is reported as insufficient rather than treated as proof.
+
+
+## Evidence configuration
+
+- `GET /api/connections`: current session connection metadata only; never returns credentials.
+- `POST /api/connections`: strict provider-specific connection input. Saves an encrypted credential, returning metadata; collection verifies access later.
+- `DELETE /api/connections/:id`: disconnect a session credential for future reads.
+- `POST /api/cases/:id/evidence-plan`: save bounded coverage, environment/URL targets, selected connection IDs, freshness, optional exact commit and analytics dates, and requirement-linked checks. Rejects active investigations, noncurrent requirement IDs and unavailable connection IDs; supersedes prior findings.
+- `POST /api/evaluations/:fixtureId`: live Llama/CLEF assessment of a built-in synthetic fixture only; requires live AI enabled and normal rate/budget availability. No arbitrary evidence, URLs or credentials accepted.
+
+All routes use existing session ownership and same-origin mutation rules. Reports include the saved evidence plan, source provenance, check results, limitations and unvisited discovered URLs. Reports never contain connection credentials.

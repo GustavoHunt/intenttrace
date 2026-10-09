@@ -28,7 +28,7 @@ Localhost app downloaded from GitHub, with isolated 24-hour case sessions. Start
 
 ## Capabilities and Constraints
 
-Live CLEF probabilities assess reviewed requirements against general supplied artifacts. Llama drafts requirements and explains results; missing evidence and weak decisions remain unresolved. ChatGPT/Claude JSON and labelled text imports, public HTTPS link intake, text/code/CSV/JSON/PDF/DOCX extraction, durable chat, report export, scope versions and private local storage. Public URL fetching is local-only and blocks private networks; no imported code or page script executes. Three CSV scenarios remain suggestions. No production integrations, employer data or hardcoded secrets.
+Live CLEF probabilities assess reviewed requirements against source-quoted evidence packets. Llama drafts requirements, selects relevant public pages, and identifies observations, gaps and next steps. Cloudflare Browser Run records dated rendered DOM, metadata and links in an anonymous, domain-restricted browser; source integrity hashes and collection limitations remain inspectable. Public URL intake is local-only; collection uses the configured cloud browser. Page scripts may execute in that isolated browser, while writes, downloads, private addresses, credentials and custom ports are blocked. Imported files and repositories are not executed. ChatGPT/Claude text imports, text/code/CSV/JSON/PDF/DOCX extraction, durable chat, reports and scope versions remain available. Three synthetic CSV scenarios demonstrate deterministic checks. Model judgments cannot establish unobserved analytics, authorship or historical delivery.
 
 ## Brand Commitments
 

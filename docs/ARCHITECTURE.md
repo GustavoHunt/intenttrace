@@ -14,6 +14,11 @@ flowchart LR
   Agent --> R2[Private evidence / R2]
   Workflow --> R2
   Workflow --> Verifier[Deterministic scope verifier]
+  Workflow --> Collector[Browser Run / dated public DOM]
+  Collector --> Agent
+  Collector --> Analyst[Llama 3.3 / per-requirement evidence and gaps]
+  Analyst --> Quotes[Exact source quotation validation]
+  Quotes --> CLEF
   Workflow --> CLEF[Workers AI CLEF / typed probabilities]
   Agent --> AI[Workers AI + AI Gateway]
   Workflow --> AI
@@ -34,7 +39,11 @@ The primary path imports a public conversation snapshot, JSON export or labelled
 
 The client extracts bounded PDF/DOCX text without rendering untrusted HTML or running code. The server hashes exact extracted UTF-8 text and separately retains a supplied original-file digest. Binary originals are not stored. Conversation provenance is supplied, with reception time distinct from historical claims.
 
-For general cases, Llama drafts requirements from user messages. Explicit review creates a scope version; this current approval does not prove original approval timing. A Workflow snapshots the version and artifacts, calls the actual CLEF model with typed choice questions, validates complete probabilities and applies conservative thresholds. Missing artifacts or weak decisions remain insufficient. Encoded CLEF input is capped at 60,000 bytes including questions; excerpts record truncation. Llama explains statuses without changing them. Offline cases never synthesize CLEF outputs. New documents or scopes supersede old findings.
+The live online path retains the public artifact URL, creates an anonymous guarded Cloudflare browser, and captures rendered text, metadata, headings, JSON-LD and links. Llama chooses from bounded same-site candidates; discovery-related scopes also make crawler resources candidates. Each observed artifact has a capture timestamp, final URL, HTTP status and content hash. Previous captures remain in case history but are excluded from a new assessment's current evidence snapshot. Collection is sampled and bounded; unread pages and failures are explicit. Models never turn failed collection into proof of non-delivery.
+
+Evidence retrieval scans the entire extracted document and ranks chunks per requirement, retaining source diversity. Llama supplies observations, gaps, next steps and exact quotations. Invalid quotation text/IDs fail closed. CLEF judges the verified packets; a supported or contradicted status additionally requires analyst agreement and the existing probability thresholds. R2 snapshot keys keep large collection payloads out of Workflow step return values. Publication appends observed records and a research manifest to the versioned case. The requirement redraft endpoint proposes editable text only; confirmation remains a separate versioned action.
+
+For general cases, Llama drafts requirements from user messages. Explicit review creates a scope version; this current approval does not prove original approval timing. A Workflow snapshots the version and artifacts, calls the actual CLEF model with typed choice questions, validates complete probabilities and applies conservative thresholds. Missing artifacts or weak decisions remain insufficient. Encoded CLEF input is capped at 95,000 bytes including questions; excerpts record truncation. Llama explains statuses without changing them. Offline cases never synthesize CLEF outputs. New documents or scopes supersede old findings.
 
 The CSV example retains a separate deterministic path:
 
@@ -64,7 +73,7 @@ Old runs retain their original scope ID. A later scope version never changes the
 | Vectorize / AI Search       | Defer: small structured cases can be verified directly; semantic retrieval would add ambiguity.              |
 | Queues                      | Defer: Workflows already owns the background investigation lifecycle.                                        |
 | Realtime / voice            | Defer: text chat meets the assignment and makes evidence references easier to inspect.                       |
-| Browser Run                 | The installer binds Browser Run and verifies fixed HTML rendering. Arbitrary URL investigation is not implemented. |
+| Browser Run                 | Anonymous, bounded investigation of supplied public URLs and same-site evidence links; records rendered DOM and provenance. No authenticated browsing or arbitrary actions. |
 | Sandbox                     | Defer arbitrary repository execution; the demonstration executor is allowlisted. |
 | Access                      | Optional protection for a private staging hostname; the public demo uses anonymous isolated sessions.        |
 | Secrets Store               | Optional organization-wide secret reuse; ordinary Workers Secrets is sufficient for this single application. |
@@ -73,6 +82,17 @@ Old runs retain their original scope ID. A later scope version never changes the
 
 The OAuth installer is a separate Worker with an installation Durable Object. It pins the application release checksum and stores only a progress receipt plus an encrypted credential vault. The release bundle stays in Static Assets to avoid Durable Object value-size limits. Provisioning advances one checkpoint at a time and retains completed infrastructure on interruption. See [installation](INSTALLATION.md) for credential lifecycle and operator prerequisites.
 
-A failed model proposal does not silently run a fixture in live mode. Deterministic verification can still complete if only the explanatory model call fails. A duplicate operation does not create another export. Failed operations preserve evidence; the client can request another investigation. After case deletion, reads fail and active Workflow execution is terminated where possible. R2 lifecycle rules handle orphaned snapshots.
+A failed model proposal does not silently run a fixture in live mode. Deterministic verification can still complete if only the explanatory model call fails. A duplicate operation does not create another export. Failed operations preserve evidence; the client can request another investigation. After case deletion, reads fail and active Workflow execution is terminated where possible. Snapshot cleanup runs on both successful and failed workflows. Deletion first blocks further case writes, attempts workflow termination and removes every object under the case prefix, including orphan bodies and snapshots, before clearing case state. A failed cleanup leaves the deletion gate in place for retry; deployed R2 lifecycle rules provide an additional fallback.
 
 Workflow step retries must not be represented as exactly-once model inference: a network interruption after inference but before checkpointing can cause another reservation/request. Model-call budgets count reservations, including failed calls. They bound requests, not a precise currency amount.
+
+
+## Evidence investigation extensions
+
+`EvidencePlan` is saved on a case and frozen in each workflow snapshot. SessionRegistry owns the encrypted connection vault; only a running collection obtains selected credentials, without serializing them into snapshots. `provider-evidence.ts` produces observed receipts from fixed provider endpoints. `research.ts` applies the selected 10/30-page budget and captures rendered DOM in a CDP isolated world plus a separately fetched, bounded HTTP HTML response without executing its scripts, optionally adding bounded interaction probes. Cases retain observation bodies in R2 and integrity-checked references in SQLite; older inline case records hydrate compatibly.
+
+`acceptance.ts` evaluates explicit requirement-linked checks with freshness, environment, exact-commit and date boundaries. `evidence-boundary.ts` removes stale and wrong-origin observations before Llama analysis. CLEF sees the qualified analyst packet and collection/check coverage; deterministic failures and unknown checks veto supported classifications. Checks that pass do not establish untested parts of a requirement. The UI exposes source scopes, credentials, check editing and coverage, and blocks assessment while the evidence plan is unsaved.
+
+`evaluation-cases.ts` contains only synthetic observations. The deterministic runner tests gate behavior with explicitly synthetic classifier inputs. The separate live runner invokes the real analyst and classifier against those observations and reports exact verdict agreement plus false-support count. Both include partial delivery, source blocking, different environment, freshness, prompt injection, wrong commit, failed interaction, truncation and passing subchecks with unresolved broader scope.
+
+Browser capture is capped before CDP returns values to the Worker: individual fields, counts, and the complete UTF-8 JSON representation are bounded. The Worker rechecks observation and aggregate body sizes before persistence. R2 reads reject excessive declared sizes and count actual streamed bytes before decoding, including older stored records. Oversized analyst facts are omitted with an explicit coverage warning rather than causing an unbounded final-fact request.

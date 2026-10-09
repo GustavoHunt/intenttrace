@@ -19,6 +19,7 @@ export const DocumentSchema = z
     name: z.string().min(1).max(150),
     content: z.string().min(1).max(300000),
     mediaType: z.string().max(100).default("text/plain"),
+    sourceUrl: z.string().url().max(2048).optional(),
     originalSha256: z
       .string()
       .regex(/^[a-f0-9]{64}$/)

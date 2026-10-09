@@ -98,6 +98,8 @@ components:
 
 **Creative North Star: "The Case Desk"**
 
+The case desk now fills the viewport. Header, status, view navigation, Linked evidence and the bottom investigation composer sit outside the scroll area. Workspace owns case-content scrolling, including settings and optional CSV controls. Linked evidence uses a fixed side dock on desktop and a compact dock above the composer on narrow or short screens; a native artifact picker keeps every artifact reachable without another panel scrollbar. A native case picker similarly keeps navigation bounded. Investigation messages appear in the Conversation workspace, and interacting with the composer selects that view and follows its latest message. Supplied conversation snapshots remain available through an expandable transcript. Evidence selections reveal scope and finding context in Timeline, while the dock provides the corresponding downloads.
+
 The user selected option A: a navy navigation shell, a pale working surface, a chronological case file, and a supporting evidence inspector. The interface uses familiar controls and compact, readable text to make an investigation inspectable. The primary downloadable local app now opens with conversation intake: a public shared link, followed by artifacts and reviewed requirements. Evidence, versioned scope, and explicit status labels carry the visual hierarchy. The synthetic CSV case remains a secondary way to explore the same desk.
 
 This document records the current implementation in `src/client/main.tsx`, `src/client/intake.tsx`, `src/client/files.ts`, `src/client/style.css`, and `installer/public/`. It is a source-based design record, not a claim that visual acceptance, deployment validation, or the original mockup fidelity gates have passed. Desktop and mobile intake captures were inspected for this update; they show only the initial intake state. The optional Cloudflare installer shares the direction while using a more spacious single-task layout.
@@ -234,3 +236,9 @@ The installer presents a numbered list separated by fine rules. Completed steps 
 - **Don't** present imported claims or unverified artifacts as established observations.
 - **Don't** turn the installer's small palette differences into new reusable color roles.
 - **Don't** infer passed design or deployment gates from the existence of this document.
+
+### Conversation progress and recovery
+
+Conversation preparation uses a compact status panel in the existing message column: a stage title, elapsed time, four labelled preparation steps and a Stop response action. Stages advance only on server events; the initial connection state is distinct from inference. The four stages are reading case evidence, checking the AI allowance, preparing the answer and checking evidence links. A single current-step dot uses restrained motion, disabled under reduced-motion preferences. The composer remains available for editing and shows a short preparation status.
+
+Failures appear as persisted assistant messages using the existing amber warning palette, with a specific heading, explanation and a relevant action. Allowance failures include the recorded next reset in local time and Review timeline, without implying immediate retry can restore credits. Recoverable failures offer Retry answer. Connection interruptions are explained locally even if no server message arrives. Phone layouts stack the steps and retain readable body text and 44px controls. Actual desktop and 390px phone-emulation views of progress and quota feedback were inspected.

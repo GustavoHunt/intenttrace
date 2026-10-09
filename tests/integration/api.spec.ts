@@ -76,6 +76,7 @@ test("Agent chat streams, persists, and rejects oversized history", async ({
   const socket = new WebSocket(`${origin.replace("http:", "ws:")}${path}`, {
     headers: { Origin: origin, Cookie: cookies },
   });
+  const chunks: string[] = [];
   try {
     await new Promise<void>((resolve, reject) => {
       socket.once("open", resolve);
@@ -85,6 +86,7 @@ test("Agent chat streams, persists, and rejects oversized history", async ({
       const timer = setTimeout(() => reject(new Error("Chat timeout")), 10000);
       socket.on("message", (raw) => {
         const data = JSON.parse(raw.toString());
+        if (data.type === "cf_agent_use_chat_response" && typeof data.body === "string") chunks.push(data.body);
         if (data.type === "cf_agent_use_chat_response" && data.done) {
           clearTimeout(timer);
           resolve();
@@ -110,6 +112,8 @@ test("Agent chat streams, persists, and rejects oversized history", async ({
       }),
     );
     await done;
+    expect(chunks.join("")).toContain('"stage":"reading"');
+    expect(chunks.join("")).toContain('"outcome":"complete"');
     await expect
       .poll(async () =>
         JSON.stringify(
@@ -234,12 +238,16 @@ test("JSON import marks supplied evidence and rejects corrupt hashes and referen
 }) => {
   await begin(request);
   const bundle = JSON.parse(await readFile("examples/correct.json", "utf8"));
+  bundle.artifacts[0].observation = "rendered_dom";
+  bundle.artifacts[0].contentStored = true;
   const imported = await request.post("/api/import", {
     headers: { Origin: origin },
     data: bundle,
   });
   expect(imported.status()).toBe(201);
   const c = await imported.json();
+  expect(c.artifacts[0].observation).toBeUndefined();
+  expect(c.artifacts[0].contentStored).toBeUndefined();
   expect(
     c.events.every((e: { provenance: string }) => e.provenance === "supplied"),
   ).toBe(true);
@@ -302,6 +310,17 @@ test("general intake requires approval, preserves original artifacts and version
   expect(result.findings[0].method).toBe("offline");
   expect(result.findings[0].decision.mode).toBe("offline");
   expect(result.findings[0].findings[0].status).toBe("insufficient_evidence");
+  const unchangedPlan = await action(request, c.id, "evidence-plan", {});
+  expect(unchangedPlan.status).toBe("complete");
+  expect(unchangedPlan.revision).toBe(result.revision);
+  expect(unchangedPlan.events).toEqual(result.events);
+  expect(unchangedPlan.findings).toEqual(result.findings);
+  const changedPlan = await action(request, c.id, "evidence-plan", { coverage: "expanded" });
+  expect(changedPlan.status).toBe("ready");
+  expect(changedPlan.findings[0].superseded).toBe(true);
+  const repeatedPlan = await action(request, c.id, "evidence-plan", { coverage: "expanded" });
+  expect(repeatedPlan.revision).toBe(changedPlan.revision);
+  expect(repeatedPlan.events).toEqual(changedPlan.events);
   const doc = c.artifacts.find((a: any) => a.name === "summary.md");
   expect(
     await (await request.get(`/api/cases/${c.id}/artifacts/${doc.id}`)).text(),
@@ -340,4 +359,34 @@ test("local source fetch rejects cross-origin and private destinations", async (
   });
   expect(blocked.status()).toBe(400);
   expect(await blocked.text()).toContain("Private and local");
+});
+
+test("private connections are redacted, isolated and removable; plans are validated", async ({ request, playwright }) => {
+  expect((await request.get("/api/connections")).status()).toBe(401);
+  await begin(request);
+  const credential = { provider: "github", label: "Synthetic CI", repository: "synthetic/example", runId: "123", secret: "synthetic-test-credential" };
+  const saved = await request.post("/api/connections", { headers: { Origin: origin }, data: credential });
+  expect(saved.status(), await saved.text()).toBe(201);
+  const connection = await saved.json();
+  expect(JSON.stringify(connection)).not.toContain(credential.secret);
+  const listed = await (await request.get("/api/connections")).json();
+  expect(listed).toHaveLength(1); expect(JSON.stringify(listed)).not.toContain(credential.secret);
+  expect((await request.post("/api/connections", { headers: { Origin: "https://attacker.invalid" }, data: credential })).status()).toBe(403);
+  const stranger = await playwright.request.newContext({ baseURL: origin });
+  try { await begin(stranger); expect(await (await stranger.get("/api/connections")).json()).toEqual([]); } finally { await stranger.dispose(); }
+  const created = await request.post("/api/intake", { headers: { Origin: origin }, data: { title: "Synthetic CI evidence", provider: "manual", messages: [{ id: "a", role: "user", text: "Verify the selected CI run" }], originalPrompt: "Verify the selected CI run", documents: [] } });
+  const c = await created.json();
+  await action(request, c.id, "requirements", { requirements: [{ id: "req_1", text: "Verify CI for this commit" }] });
+  const plan = { coverage: "expanded", connectionIds: [connection.id], expectedCommit: "a".repeat(40), checks: [{ id: "check_1", requirementId: "req_1", kind: "ci", expected: "" }] };
+  const updated = await action(request, c.id, "evidence-plan", plan);
+  expect(updated.evidencePlan.coverage).toBe("expanded");
+  expect((await request.post(`/api/cases/${c.id}/evidence-plan`, { headers: { Origin: origin }, data: { ...plan, targetUrls: ["https://127.0.0.1/"] } })).status()).toBe(400);
+  expect((await request.post(`/api/cases/${c.id}/evidence-plan`, { headers: { Origin: origin }, data: { ...plan, checks: [{ ...plan.checks[0], requirementId: "req_9" }] } })).status()).toBe(400);
+  expect((await request.post("/api/evaluations/visible-delivery", { headers: { Origin: origin }, data: {} })).status()).toBe(409);
+  const revised = await action(request, c.id, "requirements", { requirements: [{ id: "req_1", text: "A materially different requirement" }] });
+  expect(revised.evidencePlan.checks).toEqual([]);
+  const report = await (await request.get(`/api/cases/${c.id}/report`)).text(); expect(report).not.toContain(credential.secret);
+  expect((await request.delete(`/api/connections/${connection.id}`, { headers: { Origin: origin } })).status()).toBe(200);
+  expect(await (await request.get("/api/connections")).json()).toEqual([]);
+  expect((await request.post(`/api/cases/${c.id}/evidence-plan`, { headers: { Origin: origin }, data: plan })).status()).toBe(400);
 });

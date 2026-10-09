@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { RequirementSchema, type Intake } from "./intake";
+import type { EvidencePlan, CheckResult } from "./investigation";
 
 const id = z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/);
 const date = z.iso.datetime();
@@ -75,7 +76,11 @@ export const ArtifactSchema = z
     kind: z.enum(["snapshot", "export", "configuration", "document"]),
     sha256: z.string().regex(/^[a-f0-9]{64}$/),
     content: z.string().max(900000),
+    contentStored: z.boolean().optional(),
     mediaType: z.string().max(100).optional(),
+    sourceUrl: z.string().url().max(2048).optional(),
+    capturedAt: date.optional(),
+    observation: z.enum(["rendered_dom", "http_response"]).optional(),
     originalSha256: z
       .string()
       .regex(/^[a-f0-9]{64}$/)
@@ -87,6 +92,19 @@ export const FindingSchema = z.object({
   status: z.enum(["supported", "contradicted", "insufficient_evidence"]),
   explanation: z.string(),
   evidenceIds: z.array(z.string()),
+  observations: z.array(z.string()).optional(),
+  gaps: z.array(z.string()).optional(),
+  nextSteps: z.array(z.string()).optional(),
+  citations: z
+    .array(
+      z.object({
+        artifactId: z.string(),
+        source: z.string(),
+        quote: z.string(),
+        capturedAt: z.string().optional(),
+      }),
+    )
+    .optional(),
 });
 export type Scope = z.infer<typeof ScopeSchema>;
 export type EvidenceEvent = z.infer<typeof EventSchema>;
@@ -101,7 +119,7 @@ export const BundleSchema = z
     scopes: z.array(ScopeSchema).min(1).max(30),
     events: z.array(EventSchema).max(500),
     runs: z.array(RunSchema).max(30),
-    artifacts: z.array(ArtifactSchema).max(100),
+    artifacts: z.array(ArtifactSchema).max(300),
   })
   .strict();
 export type Bundle = z.infer<typeof BundleSchema>;
@@ -116,6 +134,23 @@ export type Revision = {
   explanationMode: "live" | "offline" | "unavailable";
   superseded: boolean;
   method?: "deterministic" | "clef" | "offline";
+  research?: {
+    sources: {
+      url: string;
+      status: "captured" | "failed";
+      detail: string;
+      capturedAt: string;
+      artifactId?: string;
+    }[];
+    limitations: string[];
+    model: string;
+    pageLimit: number;
+    coverageMode?: "targeted" | "expanded";
+    discovered?: number;
+    unvisited?: string[];
+    stopReason?: string;
+    checks?: CheckResult[];
+  };
   decision?: {
     model: string;
     mode: "live" | "offline" | "unavailable";
@@ -131,6 +166,7 @@ export type Revision = {
   };
 };
 export type CaseData = Bundle & {
+  evidencePlan?: EvidencePlan;
   intake?: Omit<Intake, "documents">;
   id: string;
   scenario: Scenario;
@@ -143,6 +179,9 @@ export type CaseData = Bundle & {
   activeWorkflow?: string;
   operations: Record<string, string>;
 };
+export function caseManifest(c: CaseData): CaseData {
+  return { ...c, artifacts: c.artifacts.map((a) => a.observation ? { ...a, content: "", contentStored: true } : a) };
+}
 export type CaseView = Omit<CaseData, "artifacts" | "operations"> & {
   artifacts: Omit<Artifact, "content">[];
 };
@@ -236,7 +275,7 @@ export async function artifact(
   kind: Artifact["kind"],
   value: unknown,
 ): Promise<Artifact> {
-  const content = JSON.stringify(value);
+  const content = ArtifactSchema.shape.content.parse(JSON.stringify(value));
   return { id: uid(), name, kind, content, sha256: await hash(content) };
 }
 export function validateBundle(b: Bundle) {

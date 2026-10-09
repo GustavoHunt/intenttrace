@@ -23,7 +23,9 @@
     "deploy:staging": "node scripts/setup.mjs deploy staging",
     "deploy:demo": "node scripts/setup.mjs deploy demo",
     "scan:secrets": "node scripts/scan-secrets.mjs",
-    "schema": "tsx scripts/schema.ts"
+    "schema": "tsx scripts/schema.ts",
+    "eval:evidence": "tsx scripts/evaluate-evidence.ts",
+    "eval:evidence:live": "tsx scripts/evaluate-evidence.ts --live"
   },
   "dependencies": {
     "@ai-sdk/react": "^4.0.133",

@@ -61,6 +61,7 @@ if (command === "local" || command === "configure") {
     config.name = `intenttrace-${stage}`;
     config.account_id = account;
     config.ai = { binding: "AI", remote: true };
+    config.browser = { binding: "BROWSER", remote: true };
     config.vars = {
       ...config.vars,
       AI_GATEWAY_ID: gateway,
@@ -83,7 +84,7 @@ if (command === "local" || command === "configure") {
     await writeFile(configPath, JSON.stringify(config, null, 2) + "\n");
     console.log(
       stage === "local"
-        ? `Saved ignored ${configPath}. Run npm run dev, then enable Clef in application Settings. R2, Durable Objects and Workflows are emulated locally; only Workers AI uses your account.`
+        ? `Saved ignored ${configPath}. Run npm run dev, then enable Clef in application Settings. R2, Durable Objects and Workflows are emulated locally; Workers AI and Browser Run use your account.`
         : `Saved ignored ${configPath}. Next: resources, secrets, then deploy. See README.md for service setup.`,
     );
   } finally {
@@ -155,7 +156,7 @@ if (command === "local" || command === "configure") {
 } else if (command === "live") {
   await configuration();
   console.log(
-    "Connected development makes Workers AI available. Enable Clef in application Settings to use real AI quota. Your existing Cloudflare login supplies credentials; no API key is embedded in the app.",
+    "Connected development makes Workers AI and Browser Run available. Enable Clef in application Settings to use real AI and browser quotas. Your existing Cloudflare login supplies credentials; no API key is embedded in the app.",
   );
   await run(wrangler, ["whoami"]);
   await run("node_modules/vite/bin/vite.js", ["--host", "127.0.0.1"], {

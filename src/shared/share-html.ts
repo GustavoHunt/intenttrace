@@ -1,5 +1,40 @@
 import { parseHTML } from "linkedom";
 import { normalizeConversation, type ChatMessage } from "./intake.ts";
+
+// Public Codex shares serve a versioned snapshot after loading the HTML shell.
+// Import only conversation text; tools, reasoning, diffs and assets are not messages.
+export function parseCodexSnapshot(value: unknown) {
+  const snapshot = value as any;
+  if (snapshot?.version !== 1 || !Array.isArray(snapshot.turns))
+    throw new Error(
+      "Unsupported shared Codex snapshot. Use an export or paste the conversation instead.",
+    );
+  const messages: { role: string; content: string }[] = [];
+  for (const turn of snapshot.turns) {
+    if (!Array.isArray(turn?.items))
+      throw new Error("Invalid shared Codex turn.");
+    for (const item of turn.items) {
+      if (item?.type === "userMessage" && Array.isArray(item.content)) {
+        const content = item.content
+          .filter(
+            (part: any) =>
+              part?.type === "text" && typeof part.text === "string",
+          )
+          .map((part: any) => part.text)
+          .join("\n");
+        if (content.trim()) messages.push({ role: "user", content });
+      } else if (
+        item?.type === "agentMessage" &&
+        typeof item.text === "string" &&
+        item.text.trim()
+      ) {
+        messages.push({ role: "assistant", content: item.text });
+      }
+    }
+  }
+  return normalizeConversation({ title: snapshot.title, messages });
+}
+
 // React Router's shared ChatGPT payload is a flattened graph. Resolve only its JSON data.
 export function decodeGraph(flat: any[]): any {
   const cache = new Map<number, any>();

@@ -459,6 +459,7 @@ export function IntakeForm({
 export function Requirements({
   data,
   onConfirm,
+  onDraft,
   onAssess,
   onDocuments,
   busy,
@@ -470,6 +471,7 @@ export function Requirements({
 }: {
   data: CaseView;
   onConfirm: (text: string[]) => Promise<void>;
+  onDraft: () => Promise<string[]>;
   onAssess: () => Promise<void>;
   onDocuments: (docs: ImportedDocument[]) => Promise<void>;
   busy: boolean;
@@ -483,7 +485,10 @@ export function Requirements({
   const [draft, setDraft] = useState(
       scope.requirements?.map((r) => r.text).join("\n") || "",
     ),
-    [documentBusy, setDocumentBusy] = useState(false);
+    [documentBusy, setDocumentBusy] = useState(false),
+    [draftBusy, setDraftBusy] = useState(false),
+    [draftError, setDraftError] = useState("");
+  busy = busy || draftBusy;
   const lines = draft
     .split("\n")
     .map((s) => s.trim())
@@ -497,10 +502,9 @@ export function Requirements({
   const assessed =
     data.status === "complete" &&
     latest &&
-    !latest.superseded &&
-    latest.decision?.mode === "live";
+    !latest.superseded;
   const guideStep = !scope.confirmedAt || changed ? 1 : assessed ? 3 : 2;
-  const hasArtifacts = data.artifacts.some(
+  const hasArtifacts = Boolean(data.evidencePlan?.targetUrls.length || data.evidencePlan?.connectionIds.length || data.evidencePlan?.checks.some((c) => c.url)) || data.artifacts.some(
     (a) => a.kind === "document" && a.name !== "conversation.json",
   );
   return (
@@ -541,6 +545,23 @@ export function Requirements({
         </p>
         <div className="controls">
           <button
+            className="secondary"
+            disabled={busy || documentBusy || !clefEnabled}
+            onClick={async () => {
+              setDraftBusy(true);
+              setDraftError("");
+              try {
+                setDraft((await onDraft()).join("\n"));
+              } catch (e) {
+                setDraftError((e as Error).message);
+              } finally {
+                setDraftBusy(false);
+              }
+            }}
+          >
+            {draftBusy ? "Reading conversation…" : "Redraft from conversation"}
+          </button>
+          <button
             id="confirm-requirements"
             className={
               guideOpen && guideStep === 1 ? "tour-target" : "secondary"
@@ -572,12 +593,13 @@ export function Requirements({
             {documentBusy
               ? "Waiting for artifact…"
               : data.status === "analysing"
-                ? "Assessing…"
+                ? "Gathering and assessing evidence…"
                 : clefEnabled
                   ? "Assess with Clef"
                   : "Record offline review"}
           </button>
         </div>
+        {draftError && <p role="alert">{draftError}</p>}
         {changed && scope.confirmedAt && (
           <p className="small">Confirm your edits before assessment.</p>
         )}

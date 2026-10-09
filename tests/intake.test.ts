@@ -5,13 +5,99 @@ import {
   shareProvider,
   IntakeSchema,
 } from "../src/shared/intake";
-import { decodeGraph, parseSharedHtml } from "../src/shared/share-html";
+import {
+  decodeGraph,
+  parseCodexSnapshot,
+  parseSharedHtml,
+} from "../src/shared/share-html";
 import { classifyAnswer, ClefResponseSchema } from "../src/server/clef";
 import { intakeCase } from "../src/server/intake-case";
-import { publicAddress, sourceUrl } from "../scripts/source-fetch";
+import {
+  codexSnapshotUrl,
+  publicAddress,
+  sourceUrl,
+} from "../scripts/source-fetch";
 import { hash } from "../src/shared/domain";
 
 describe("conversation intake", () => {
+  it("reads Codex share text in turn order without treating tools, reasoning or assets as messages", () => {
+    const parsed = parseCodexSnapshot({
+      version: 1,
+      title: "Synthetic Codex share",
+      turns: [
+        {
+          items: [
+            {
+              type: "userMessage",
+              content: [
+                { type: "text", text: "Write a report" },
+                { type: "image", text: "not message text" },
+              ],
+            },
+            {
+              type: "agentMessage",
+              phase: "commentary",
+              text: "Checking sources",
+            },
+            { type: "reasoning", text: "excluded reasoning" },
+            { type: "commandExecution", text: "excluded command output" },
+            { type: "fileChange", text: "excluded diff" },
+            { type: "agentMessage", text: "Report ready" },
+          ],
+        },
+        {
+          items: [
+            {
+              type: "userMessage",
+              content: [{ type: "text", text: "Revise it" }],
+            },
+          ],
+        },
+      ],
+    });
+    expect(parsed.title).toBe("Synthetic Codex share");
+    expect(parsed.messages.map(({ role, text }) => [role, text])).toEqual([
+      ["user", "Write a report"],
+      ["assistant", "Checking sources"],
+      ["assistant", "Report ready"],
+      ["user", "Revise it"],
+    ]);
+  });
+  it("rejects unsupported, malformed and empty Codex snapshots", () => {
+    for (const value of [
+      null,
+      { version: 2, turns: [] },
+      { version: 1, turns: [{}] },
+      { version: 1, turns: [] },
+    ])
+      expect(() => parseCodexSnapshot(value)).toThrow();
+    expect(() =>
+      parseCodexSnapshot({
+        version: 1,
+        turns: [{ items: [{ type: "agentMessage", text: "x".repeat(60001) }] }],
+      }),
+    ).toThrow();
+  });
+  it("resolves only exact Codex public-share routes to the snapshot endpoint", () => {
+    const id = "cx_" + "a".repeat(32);
+    for (const suffix of ["", "/"])
+      expect(codexSnapshotUrl(`https://chatgpt.com/s/${id}${suffix}`)).toBe(
+        `https://chatgpt.com/backend-api/wham/shared_threads/${id}`,
+      );
+    for (const url of [
+      "https://chatgpt.com/share/example",
+      "https://chatgpt.com/s/example",
+      `https://chatgpt.com/c/${id}`,
+      "https://claude.ai/share/example",
+    ])
+      expect(codexSnapshotUrl(url)).toBeUndefined();
+    expect(() =>
+      codexSnapshotUrl(`https://chatgpt.com.evil.test/s/${id}`),
+    ).toThrow();
+    expect(() =>
+      codexSnapshotUrl(`https://chatgpt.com/s/${id}?token=secret`),
+    ).toThrow();
+  });
   it("imports the selected ChatGPT branch and excludes system instructions", () => {
     const value = {
       title: "Branch",

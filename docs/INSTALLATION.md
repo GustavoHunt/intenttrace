@@ -11,7 +11,7 @@ npm run dev
 
 Open the printed localhost URL. Clef starts off in **Settings**. Intake, storage, offline chat and CSV checks work locally; general reviews remain insufficient evidence without a model assessment. No credential prompt or remote provisioning occurs.
 
-## With real Workers AI
+## With real Workers AI and Browser Run
 
 ```sh
 npx wrangler login
@@ -23,7 +23,7 @@ In the Cloudflare dashboard:
 
 1. Copy your account's **Account ID**.
 2. Open **AI → AI Gateway → Create Gateway**. Create one in the same account, copy its ID, and disable persistent prompt/response logging and caching. Code also requests `collectLog: false` and `skipCache: true`. No Gateway API token is passed by the native Workers AI binding path.
-3. Confirm Workers AI is available and review usage/pricing. Complete any service activation or billing steps within Cloudflare.
+3. Confirm Workers AI and Browser Run are available and review usage/pricing for both. Complete any service activation or billing steps within Cloudflare.
 
 ```sh
 npm run setup:local
@@ -32,11 +32,11 @@ npm run dev
 
 Setup asks for **public IDs only** and writes ignored `wrangler.local.local.jsonc`. No app secret is needed on localhost: a random signing key is generated and persisted in local session storage. Local mode refuses requests addressed to public hostnames. Keep the server bound to `127.0.0.1`; do not expose it through a tunnel or reverse proxy.
 
-`npm run dev` detects the ignored local connection file. After this initial restart, use **Settings → Use Clef and live AI** to switch in real time. The setting is server-enforced, belongs to your 24-hour session, and survives a page refresh. It controls Clef assessments and Llama assistance. Turning it off affects new requests; a started assessment keeps its captured mode. Old `MODE` environment values are ignored. The legacy `dev:offline` command is just a startup alias, and `dev:live` adds a login check; neither overrides the app setting.
+`npm run dev` detects the ignored local connection file. After this initial restart, use **Settings → Use Clef and live AI** to switch in real time. The setting is server-enforced, belongs to your 24-hour session, and survives a page refresh. It controls Clef assessments, Llama assistance and online evidence collection. Turning it off affects new requests; a started assessment keeps its captured mode. Old `MODE` environment values are ignored. The legacy `dev:offline` command is just a startup alias, and `dev:live` adds a login check; neither overrides the app setting.
 
 Creating or reopening a conversation case opens **Timeline**. The optional guided tour highlights the actual requirements and assessment actions, waits for confirmation, directs you to artifacts or Settings when needed, then points to findings. **Skip tour** is remembered in this browser; **Guided tour** replays it.
 
-R2, SQLite Durable Objects and Workflows are emulated under `.wrangler`. Only the remote AI binding sends requests to Cloudflare. No deployed Worker, R2 activation, Turnstile widget, OAuth client or administration token is required.
+R2, SQLite Durable Objects and Workflows are emulated under `.wrangler`. The remote Workers AI and Browser Run bindings use your Cloudflare account. Live assessments send selected evidence to Workers AI and may visit your selected public targets through Browser Run; selected provider connections may also contact their documented APIs. No deployed Worker, R2 activation, Turnstile widget, OAuth client or administration token is required.
 
 For automation, supply public IDs with `INTENTTRACE_ACCOUNT_ID` and `INTENTTRACE_GATEWAY_ID`. If using an API token instead of browser login, create it through Cloudflare with the necessary account permissions and inject it privately as `CLOUDFLARE_API_TOKEN` in your environment or CI secret store. Never place it in a command argument, source, report or commit. Browser login is the tested route.
 
@@ -49,7 +49,7 @@ For automation, supply public IDs with `INTENTTRACE_ACCOUNT_ID` and `INTENTTRACE
 - **Shared link or Code session restricted, blocked, dynamic or changed:** use chat-history JSON or labelled conversation paste. Attach omitted artifacts separately. Provider login cookies are never imported.
 - **Binary artifact URL:** download it and add the file. URL intake accepts public text/code/HTML only, not private networks.
 - **PDF has no readable text:** scanned pages need OCR beforehand. Extraction does not establish visual layout or behavior.
-- **Clef switch unavailable:** complete local Workers AI/Gateway setup, then restart once to load the bindings. Connection setup is separate from choosing whether to use AI.
+- **Clef switch unavailable:** complete local Workers AI/Gateway and Browser Run setup, then restart once to load the bindings. Connection setup is separate from choosing whether to use AI.
 - **AI quota exhausted:** evidence remains; wait or turn Clef off in Settings. Failed inference is never represented as fixture CLEF output.
 - **Case expired:** records expire after 24 hours. Save a report if needed; it contains supplied evidence and should be stored privately.
 
@@ -62,3 +62,7 @@ Demo/staging commands are retained for advanced use. Public deployment requires 
 The [OAuth installer prototype](INSTALLER-LEGACY.md) has separate operator prerequisites and is outside the local setup promise.
 
 Sources: [Wrangler login](https://developers.cloudflare.com/workers/wrangler/commands/#login), [remote bindings](https://developers.cloudflare.com/workers/development-testing/bindings-per-env/), [AI Gateway](https://developers.cloudflare.com/ai-gateway/), [Workers AI](https://developers.cloudflare.com/workers-ai/).
+
+## Contributor validation
+
+Run `npm run check`, `npm test`, `npm run build` and `npm run scan:secrets`. For `npm run test:e2e`, Windows uses installed Microsoft Edge for the synthetic browser-capture check; other systems should first run `npx playwright install --with-deps chromium`. Tests use the unconnected local configuration and synthetic evidence. On Windows, extract to a reasonably short directory: deeply nested paths can exceed the local runtime's persisted SQLite path limits.

@@ -4,7 +4,17 @@ import ipaddr from "ipaddr.js";
 import type { Plugin } from "vite";
 import { parseHTML } from "linkedom";
 import { shareProvider } from "../src/shared/intake.ts";
-import { parseSharedHtml } from "../src/shared/share-html.ts";
+import {
+  parseCodexSnapshot,
+  parseSharedHtml,
+} from "../src/shared/share-html.ts";
+
+export function codexSnapshotUrl(raw: string): string | undefined {
+  if (shareProvider(raw) !== "chatgpt") return;
+  const match = new URL(raw).pathname.match(/^\/s\/(cx_[0-9a-f]{32})\/?$/);
+  if (match)
+    return `https://chatgpt.com/backend-api/wham/shared_threads/${match[1]}`;
+}
 
 export function publicAddress(address: string) {
   try {
@@ -156,10 +166,16 @@ export function sourceImport(): Plugin {
             body.url.length > 2048
           )
             throw new Error("Choose a conversation or artifact URL.");
-          const result = await fetchPublic(body.url, body.kind);
+          const snapshotUrl =
+            body.kind === "conversation"
+              ? codexSnapshotUrl(body.url)
+              : undefined;
+          const result = await fetchPublic(snapshotUrl || body.url, body.kind);
           if (body.kind === "conversation")
             return respond(200, {
-              ...parseSharedHtml(result.text, shareProvider(body.url)),
+              ...(snapshotUrl
+                ? parseCodexSnapshot(JSON.parse(result.text))
+                : parseSharedHtml(result.text, shareProvider(body.url))),
               provider: shareProvider(body.url),
               sourceUrl: body.url,
               warnings: [
@@ -178,13 +194,15 @@ export function sourceImport(): Plugin {
               ""
             ).trim();
           }
+          if (!content && result.mediaType === "text/html") content = "No readable static body text was returned. Inspect this public URL with Cloudflare Browser Run during assessment; this placeholder is not delivery evidence.";
           if (!content || content.length > 300000)
             throw new Error(
               "No readable artifact text, or extracted text exceeds 300,000 characters.",
             );
           respond(200, {
+            sourceUrl: body.url,
             name: decodeURIComponent(
-              new URL(body.url).pathname.split("/").pop() || "linked-artifact",
+              new URL(body.url).pathname.split("/").pop() || new URL(body.url).hostname,
             ).slice(0, 150),
             content,
             mediaType: "text/plain",
