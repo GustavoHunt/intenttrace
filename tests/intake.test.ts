@@ -147,6 +147,8 @@ describe("conversation intake", () => {
     ["https://claude.ai/code/session_synthetic-123_A", "claude"],
     ["https://claude.ai/code/session_synthetic-123_A/", "claude"],
     ["https://chatgpt.com/c/synthetic-123", "chatgpt"],
+    ["https://chatgpt.com/s/synthetic-123_A", "chatgpt"],
+    ["https://chatgpt.com/s/synthetic-123_A/", "chatgpt"],
     ["https://chatgpt.com/synthetic-123", "chatgpt"],
     ["https://chatgpt.com/g/g-synthetic/c/synthetic-123/", "chatgpt"],
   ])("accepts vendor route %s", (url, provider) => {

@@ -26,6 +26,8 @@ The subsequent implementation request authorized personal account testing. Accou
 
 The subsequent URL-validation request asked for regex assertions accepting both vendors, specifically Claude `https://claude.ai/code/session_${X}` and ChatGPT `https://chatgpt.com/${X}`. The implementation shares complete-URL regexes across the form, intake schema and local fetcher, preserves exact-host/HTTPS restrictions, and distinguishes accepted format from public readability. Browser access is not expanded and no login cookies are forwarded.
 
+The follow-up requested ChatGPT `https://chatgpt.com/s/${id}`. The existing multi-segment regex already accepts that route; explicit regression tests cover it with and without a trailing slash, and setup documentation lists it as a supported format.
+
 The following is a summary, not a verbatim prompt transcript: anonymous isolated public sandbox; bounded working demonstration and JSON evidence imports; React and TypeScript; mockups before interface implementation; a software scope-change scenario; modest paid hosting; chronological case-file interface. The working demonstration uses synthetic tasks and an allowlisted export configuration rather than arbitrary repository edits.
 
 ## Generated assets

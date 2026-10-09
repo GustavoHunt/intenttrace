@@ -1,5 +1,9 @@
 # Validation evidence
 
+## ChatGPT short route on 9 October 2026
+
+The existing shared regex accepts `https://chatgpt.com/s/<id>`. Two additional regression cases validate that route, with and without a trailing slash, through both `shareProvider` and the intake schema. TypeScript, all 75 unit tests, all eight offline integration tests, the production build and public-file secret scan passed. Runtime code is unchanged, so the v0.1.1 download already supports this format. A fresh browser check was attempted but browser control timed out; no new browser validation or live share import is claimed.
+
 ## Local checks on 7 October 2026
 
 - TypeScript check passed.

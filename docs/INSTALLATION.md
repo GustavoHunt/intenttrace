@@ -41,7 +41,7 @@ For automation, supply public IDs with `INTENTTRACE_ACCOUNT_ID` and `INTENTTRACE
 - **Remote session authentication failed:** run `npx wrangler whoami`, then restart. If refresh fails, use `npx wrangler login` again. `dev:live` checks login before starting.
 - **Wrong account or gateway:** rerun `npm run setup:local`; both IDs must belong to the same account.
 - **Port already used:** Vite prints an available port. Use that exact origin; writes and source imports enforce same origin.
-- **Conversation URL:** regex validation accepts ChatGPT nonempty route paths, Claude `/share/<id>`, and Claude `/code/session_<id>`. Only exact HTTPS vendor domains are allowed; credentials, query parameters, fragments, encoded paths and dot segments are rejected. Matching the pattern does not establish public readability.
+- **Conversation URL:** regex validation accepts ChatGPT nonempty route paths, including `/s/<id>`, Claude `/share/<id>`, and Claude `/code/session_<id>`. Only exact HTTPS vendor domains are allowed; credentials, query parameters, fragments, encoded paths and dot segments are rejected. Matching the pattern does not establish public readability.
 - **Shared link or Code session restricted, blocked, dynamic or changed:** use chat-history JSON or labelled conversation paste. Attach omitted artifacts separately. Provider login cookies are never imported.
 - **Binary artifact URL:** download it and add the file. URL intake accepts public text/code/HTML only, not private networks.
 - **PDF has no readable text:** scanned pages need OCR beforehand. Extraction does not establish visual layout or behavior.
