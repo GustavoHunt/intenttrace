@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Env } from "./index";
+import type { ModelEnv } from "./settings";
 import type { CaseData, Finding, Revision } from "../shared/domain";
 import { HttpError } from "./security";
 
@@ -39,7 +39,7 @@ export function classifyAnswer(
     : "insufficient_evidence";
 }
 export async function assessRequirements(
-  env: Env,
+  env: ModelEnv,
   sessionId: string,
   c: CaseData,
 ): Promise<{
@@ -58,13 +58,13 @@ export async function assessRequirements(
   const evidenceIds = c.events
     .filter((e) => e.artifactIds.length)
     .map((e) => e.id);
-  if (env.MODE === "offline")
+  if (env.modelMode === "offline")
     return {
       findings: requirements.map((r) => ({
         criterion: r.id,
         status: "insufficient_evidence",
         explanation:
-          "Offline mode preserves this requirement and its supplied evidence. Enable live Workers AI to run CLEF; no model assessment was performed.",
+          "Clef is off in application Settings. This requirement and its supplied evidence are preserved; no model assessment was performed. Enable Clef and assess again when Workers AI is configured.",
         evidenceIds,
       })),
       decision: {

@@ -10,6 +10,7 @@ import {
 } from "../shared/intake";
 import type { CaseView } from "../shared/domain";
 import { readArtifact } from "./files";
+import { AssessmentGuide } from "./guidance";
 
 async function source(url: string, kind: string): Promise<any> {
   const r = await fetch("/local/source", {
@@ -51,7 +52,7 @@ export function ArtifactInput({
     }
   };
   return (
-    <div className="artifact-input">
+    <div className="artifact-input" id="artifact-entry" tabIndex={-1}>
       <label className="file-button">
         <Upload size={16} /> Add artifact files
         <input
@@ -461,12 +462,22 @@ export function Requirements({
   onAssess,
   onDocuments,
   busy,
+  clefEnabled,
+  guideOpen,
+  onSettings,
+  onDismissGuide,
+  onFindings,
 }: {
   data: CaseView;
   onConfirm: (text: string[]) => Promise<void>;
   onAssess: () => Promise<void>;
   onDocuments: (docs: ImportedDocument[]) => Promise<void>;
   busy: boolean;
+  clefEnabled: boolean;
+  guideOpen: boolean;
+  onSettings: () => void;
+  onDismissGuide: () => void;
+  onFindings: () => void;
 }) {
   const scope = data.scopes.at(-1)!;
   const [draft, setDraft] = useState(
@@ -482,54 +493,110 @@ export function Requirements({
     !lines.length ||
     lines.length > 12 ||
     lines.some((s) => s.length < 3 || s.length > 1000);
+  const latest = data.findings.at(-1);
+  const assessed =
+    data.status === "complete" &&
+    latest &&
+    !latest.superseded &&
+    latest.decision?.mode === "live";
+  const guideStep = !scope.confirmedAt || changed ? 1 : assessed ? 3 : 2;
+  const hasArtifacts = data.artifacts.some(
+    (a) => a.kind === "document" && a.name !== "conversation.json",
+  );
   return (
-    <div className="scope">
-      <h3>Review delivery requirements</h3>
-      <p className="small">
-        Drafts can miss nuance. Edit to one testable requirement per line, then
-        confirm this version. A later approval does not establish what was
-        approved in the original conversation.
-      </p>
-      <label>
-        Requirements
-        <textarea
-          className="requirements-editor"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          disabled={busy || documentBusy}
-          maxLength={12000}
+    <>
+      {guideOpen && (
+        <AssessmentGuide
+          step={guideStep}
+          enabled={clefEnabled}
+          hasArtifacts={hasArtifacts}
+          running={data.status === "analysing"}
+          onSettings={onSettings}
+          onDismiss={onDismissGuide}
+          onFindings={onFindings}
         />
-      </label>
-      <p className={`small ${invalid ? "input-error" : "muted"}`}>
-        {invalid
-          ? "Use 1–12 requirements, each between 3 and 1,000 characters. Split or shorten long lines."
-          : `${lines.length} of 12 requirements · 3–1,000 characters each`}
-      </p>
-      <div className="controls">
-        <button
-          className="secondary"
-          disabled={busy || documentBusy || invalid}
-          onClick={() => void onConfirm(lines)}
-        >
-          {scope.confirmedAt
-            ? "Confirm new requirements version"
-            : "Confirm requirements"}
-        </button>
-        <button
-          disabled={busy || documentBusy || !scope.confirmedAt || changed}
-          onClick={() => void onAssess()}
-        >
-          {documentBusy ? "Waiting for artifact…" : "Assess with CLEF"}
-        </button>
-      </div>
-      {changed && scope.confirmedAt && (
-        <p className="small">Confirm your edits before assessment.</p>
       )}
-      <ArtifactInput
-        disabled={busy}
-        onPending={setDocumentBusy}
-        onAdd={onDocuments}
-      />
-    </div>
+      <div className="scope">
+        <h3>Review delivery requirements</h3>
+        <p className="small">
+          Drafts can miss nuance. Edit to one testable requirement per line,
+          then confirm this version. A later approval does not establish what
+          was approved in the original conversation.
+        </p>
+        <label>
+          Requirements
+          <textarea
+            className="requirements-editor"
+            id="requirements-editor"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            disabled={busy || documentBusy}
+            maxLength={12000}
+          />
+        </label>
+        <p className={`small ${invalid ? "input-error" : "muted"}`}>
+          {invalid
+            ? "Use 1–12 requirements, each between 3 and 1,000 characters. Split or shorten long lines."
+            : `${lines.length} of 12 requirements · 3–1,000 characters each`}
+        </p>
+        <div className="controls">
+          <button
+            id="confirm-requirements"
+            className={
+              guideOpen && guideStep === 1 ? "tour-target" : "secondary"
+            }
+            disabled={
+              busy ||
+              documentBusy ||
+              invalid ||
+              Boolean(scope.confirmedAt && !changed)
+            }
+            onClick={() => void onConfirm(lines)}
+          >
+            {scope.confirmedAt
+              ? changed
+                ? "Confirm new requirements version"
+                : "Requirements confirmed"
+              : "Confirm requirements"}
+          </button>
+          <button
+            id="assess-requirements"
+            className={
+              guideOpen && guideStep === 2 && clefEnabled && hasArtifacts
+                ? "tour-target"
+                : undefined
+            }
+            disabled={busy || documentBusy || !scope.confirmedAt || changed}
+            onClick={() => void onAssess()}
+          >
+            {documentBusy
+              ? "Waiting for artifact…"
+              : data.status === "analysing"
+                ? "Assessing…"
+                : clefEnabled
+                  ? "Assess with Clef"
+                  : "Record offline review"}
+          </button>
+        </div>
+        {changed && scope.confirmedAt && (
+          <p className="small">Confirm your edits before assessment.</p>
+        )}
+        {!clefEnabled && (
+          <p className="small muted">
+            Clef is off. An offline review preserves the requirements and
+            records insufficient evidence without model calls.{" "}
+            <button className="evidence-link" onClick={onSettings}>
+              Enable Clef in Settings
+            </button>{" "}
+            to assess with AI.
+          </p>
+        )}
+        <ArtifactInput
+          disabled={busy}
+          onPending={setDocumentBusy}
+          onAdd={onDocuments}
+        />
+      </div>
+    </>
   );
 }

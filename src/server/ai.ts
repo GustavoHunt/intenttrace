@@ -1,14 +1,14 @@
 import { z } from "zod";
-import type { Env } from "./index";
+import type { ModelEnv } from "./settings";
 import { HttpError } from "./security";
 export async function modelJson<T>(
-  env: Env,
+  env: ModelEnv,
   sessionId: string,
   purpose: string,
   prompt: string,
   schema: z.ZodType<T>,
 ): Promise<T> {
-  if (env.MODE !== "live" || !env.AI)
+  if (env.modelMode !== "live" || !env.AI)
     throw new HttpError(503, "Live AI is not configured");
   if (new TextEncoder().encode(prompt).length > 16000)
     throw new HttpError(

@@ -11,7 +11,7 @@
     "run_worker_first": ["/api/*", "/agents/*"],
   },
   "vars": {
-    "MODE": "offline",
+    "LOCAL_DEVELOPMENT": "true",
     "TURNSTILE_SITE_KEY": "",
     "AI_GATEWAY_ID": "",
     "MODEL_ID": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",

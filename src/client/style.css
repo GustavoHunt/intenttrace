@@ -128,6 +128,110 @@
   min-height: 180px;
   line-height: 1.65;
 }
+.header-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.app-settings {
+  padding: 20px 28px;
+  background: white;
+  border-bottom: 1px solid var(--line);
+}
+.app-settings h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.app-settings p {
+  max-width: 72ch;
+  margin: 12px 0 0;
+}
+.setting-switch {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 600;
+}
+.setting-switch input {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--blue);
+  margin: 0;
+}
+.assessment-guide {
+  padding: 18px 0 22px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+.guide-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.guide-heading h3 {
+  margin: 0;
+  font-size: 18px;
+}
+.guide-heading button {
+  flex-shrink: 0;
+}
+.guide-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  list-style: none;
+  padding: 0;
+  margin: 18px 0 12px;
+}
+.guide-progress li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.guide-progress li[aria-current="step"] {
+  color: var(--blue);
+  font-weight: 700;
+}
+.guide-progress span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+}
+.guide-progress li[aria-current="step"] span {
+  background: var(--blue);
+  color: white;
+  border-color: var(--blue);
+}
+.assessment-guide p {
+  font-size: 14px;
+  max-width: 72ch;
+  margin-bottom: 12px;
+}
+.tour-target {
+  outline: 2px solid var(--blue);
+  outline-offset: 4px;
+}
+@media (max-width: 800px) {
+  .app-settings {
+    padding: 20px;
+  }
+  .header-actions {
+    gap: 8px;
+  }
+  .guide-progress {
+    display: grid;
+    gap: 8px;
+  }
+}
 .transcript-message {
   padding: 18px 0;
   border-bottom: 1px solid var(--line);

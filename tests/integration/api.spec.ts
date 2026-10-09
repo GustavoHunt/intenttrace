@@ -1,7 +1,68 @@
 import { test, expect, type APIRequestContext } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import WebSocket from "ws";
-const origin = "http://127.0.0.1:5173";
+const origin = "http://127.0.0.1:63022";
+test("AI settings are authenticated, persistent, isolated and capability-checked", async ({
+  request,
+  playwright,
+}) => {
+  expect((await request.get("/api/settings")).status()).toBe(401);
+  await begin(request);
+  const settings = await (await request.get("/api/settings")).json();
+  expect(settings).toEqual({
+    clefEnabled: false,
+    aiAvailable: false,
+    mode: "offline",
+  });
+  const update = await request.post("/api/settings", {
+    headers: { Origin: origin },
+    data: { clefEnabled: false },
+  });
+  expect(update.status()).toBe(200);
+  expect(await update.json()).toEqual(settings);
+  expect(await (await request.get("/api/settings")).json()).toEqual(settings);
+  expect(
+    (
+      await request.post("/api/settings", {
+        headers: { Origin: origin },
+        data: { clefEnabled: true },
+      })
+    ).status(),
+  ).toBe(503);
+  expect(
+    (
+      await request.post("/api/settings", {
+        headers: { Origin: "https://attacker.invalid" },
+        data: { clefEnabled: false },
+      })
+    ).status(),
+  ).toBe(403);
+  expect(
+    (
+      await request.post("/api/settings", {
+        headers: { Origin: origin },
+        data: { clefEnabled: true, modelMode: "live" },
+      })
+    ).status(),
+  ).toBe(400);
+  const stranger = await playwright.request.newContext({ baseURL: origin });
+  try {
+    expect(
+      (
+        await stranger.post("/api/settings", {
+          headers: { Origin: origin },
+          data: { clefEnabled: false },
+        })
+      ).status(),
+    ).toBe(401);
+    await begin(stranger);
+    expect(await (await stranger.get("/api/settings")).json()).toEqual(
+      settings,
+    );
+  } finally {
+    await stranger.dispose();
+  }
+});
 test("Agent chat streams, persists, and rejects oversized history", async ({
   request,
 }) => {
@@ -12,7 +73,7 @@ test("Agent chat streams, persists, and rejects oversized history", async ({
     .map((c) => `${c.name}=${c.value}`)
     .join("; ");
   const path = `/agents/case-agent/${session.sessionId}_${c.id}`;
-  const socket = new WebSocket(`ws://127.0.0.1:5173${path}`, {
+  const socket = new WebSocket(`${origin.replace("http:", "ws:")}${path}`, {
     headers: { Origin: origin, Cookie: cookies },
   });
   try {

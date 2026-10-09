@@ -12,11 +12,20 @@ import {
   Send,
   Cloud,
   ArrowRight,
+  Settings,
+  Compass,
 } from "lucide-react";
 import type { CaseView, Scenario } from "../shared/domain";
 import { tasks, TaskSchema } from "../shared/domain";
 import "./style.css";
 import { IntakeForm, Requirements } from "./intake";
+import type { SettingsView } from "../shared/settings";
+import {
+  ApplicationSettings,
+  tourInitiallyOpen,
+  dismissTour,
+  focusTarget,
+} from "./guidance";
 
 async function api<T = any>(
   path: string,
@@ -261,12 +270,19 @@ function App() {
   const [scenario, setScenario] = useState<Scenario>("divergence"),
     [selected, setSelected] = useState("");
   const [view, setView] = useState("timeline");
+  const [settings, setSettings] = useState<SettingsView | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsPending, setSettingsPending] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(tourInitiallyOpen);
+  const settingsVersion = useRef(0);
+  const settingsSaving = useRef(false);
   const upload = useRef<HTMLInputElement>(null),
     turnstile = useRef<HTMLDivElement>(null);
   const refresh = async () => {
     const s = await api("/api/cases");
     setCases(s.cases);
     setSessionId(s.sessionId);
+    setSettings(await api<SettingsView>("/api/settings"));
     return s;
   };
   const act = async (fn: () => Promise<void>) => {
@@ -292,11 +308,43 @@ function App() {
           const s = await refresh();
           if (s.cases[0]) setActive(await api(`/api/cases/${s.cases[0].id}`));
         } catch {
-          if (c.mode === "offline" || c.local) await begin();
+          if (c.local) await begin();
         }
       })
       .catch((e) => setError(e.message));
   }, []);
+  useEffect(() => {
+    if (!sessionId) return;
+    const update = () => {
+      if (settingsSaving.current) return;
+      const version = settingsVersion.current;
+      void api<SettingsView>("/api/settings")
+        .then((value) => {
+          if (version === settingsVersion.current) setSettings(value);
+        })
+        .catch(() => {});
+    };
+    window.addEventListener("focus", update);
+    return () => window.removeEventListener("focus", update);
+  }, [sessionId]);
+  const openSettings = () => {
+    setSettingsOpen(true);
+    requestAnimationFrame(() => focusTarget("application-settings"));
+  };
+  const changeSettings = async (clefEnabled: boolean) => {
+    settingsSaving.current = true;
+    settingsVersion.current++;
+    setSettingsPending(true);
+    setError("");
+    try {
+      setSettings(await api<SettingsView>("/api/settings", { clefEnabled }));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      settingsSaving.current = false;
+      setSettingsPending(false);
+    }
+  };
   useEffect(() => {
     if (!config?.siteKey || sessionId || !turnstile.current) return;
     let widget: string | undefined;
@@ -386,6 +434,7 @@ function App() {
                 void act(async () => {
                   setActive(await api(`/api/cases/${c.id}`));
                   setSelected("");
+                  setView("timeline");
                 })
               }
             >
@@ -414,14 +463,32 @@ function App() {
                 : "Connect agreed scope to observed delivery."}
             </p>
           </div>
-          <span className="badge">
-            {config?.mode === "live"
-              ? "Live AI"
-              : config
-                ? "Offline fixtures"
+          <div className="header-actions">
+            <span className="badge">
+              {settings
+                ? settings.mode === "live"
+                  ? "Clef on · Live AI"
+                  : "Clef off · Offline"
                 : "Connecting"}
-          </span>
+            </span>
+            <button
+              className="secondary"
+              disabled={!sessionId}
+              aria-expanded={settingsOpen}
+              aria-controls="application-settings"
+              onClick={() => setSettingsOpen(!settingsOpen)}
+            >
+              <Settings size={17} aria-hidden="true" /> Settings
+            </button>
+          </div>
         </header>
+        {settingsOpen && (
+          <ApplicationSettings
+            settings={settings}
+            pending={settingsPending}
+            onChange={(enabled) => void changeSettings(enabled)}
+          />
+        )}
         {error && (
           <div className="alert" role="alert">
             {error}
@@ -434,7 +501,7 @@ function App() {
               Open your private case desk. Case records expire after 24 hours.
             </p>
             <div ref={turnstile} />
-            {(config?.mode === "offline" || config?.local) && (
+            {config?.local && (
               <button onClick={() => void act(() => begin())}>
                 Start local session
               </button>
@@ -497,7 +564,7 @@ function App() {
             {active ? (
               <>
                 <div
-                  className={`status-strip ${!currentFindings || latest?.findings.some((f) => f.status === "contradicted") ? "warn" : ""}`}
+                  className={`status-strip ${!currentFindings || latest?.findings.some((f) => f.status !== "supported") ? "warn" : ""}`}
                 >
                   <strong>
                     {active.status === "failed"
@@ -554,6 +621,17 @@ function App() {
                       {label}
                     </button>
                   ))}
+                  {active.intake && (
+                    <button
+                      className="secondary"
+                      onClick={() => {
+                        setGuideOpen(true);
+                        setView("timeline");
+                      }}
+                    >
+                      <Compass size={16} aria-hidden="true" /> Guided tour
+                    </button>
+                  )}
                 </nav>
                 <div className="workspace">
                   <section className="timeline">
@@ -574,8 +652,19 @@ function App() {
                           <Requirements
                             key={`${active.id}-${scope?.id}`}
                             data={active}
+                            clefEnabled={Boolean(settings?.clefEnabled)}
+                            guideOpen={guideOpen}
+                            onSettings={openSettings}
+                            onDismissGuide={() => {
+                              dismissTour();
+                              setGuideOpen(false);
+                            }}
+                            onFindings={() => {
+                              focusTarget("case-findings");
+                            }}
                             busy={
                               busy ||
+                              settingsPending ||
                               ["running", "analysing"].includes(active.status)
                             }
                             onConfirm={(lines) =>
@@ -667,7 +756,11 @@ function App() {
                         )}
                         <ol className="events">
                           {active.events.map((event) => (
-                            <li key={event.id} id={`event-${event.id}`}>
+                            <li
+                              key={event.id}
+                              id={`event-${event.id}`}
+                              tabIndex={-1}
+                            >
                               <time>
                                 {new Date(event.occurredAt).toLocaleTimeString(
                                   [],
@@ -787,7 +880,11 @@ function App() {
                       <ProjectDashboard key={active.id} data={active} />
                     )}
                     {latest && (
-                      <div className="findings">
+                      <div
+                        className="findings"
+                        id="case-findings"
+                        tabIndex={-1}
+                      >
                         <h2>
                           {currentFindings ? "Findings" : "Previous findings"}
                         </h2>
@@ -958,4 +1055,7 @@ function App() {
     </div>
   );
 }
-createRoot(document.getElementById("root")!).render(<App />);
+const root =
+  import.meta.hot?.data.root ?? createRoot(document.getElementById("root")!);
+if (import.meta.hot) import.meta.hot.data.root = root;
+root.render(<App />);

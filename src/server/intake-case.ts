@@ -12,7 +12,7 @@ import {
   type ImportedDocument,
 } from "../shared/intake";
 import { modelJson } from "./ai";
-import type { Env } from "./index";
+import type { ModelEnv } from "./settings";
 
 export async function addDocuments(c: CaseData, documents: ImportedDocument[]) {
   for (const doc of documents) {
@@ -32,7 +32,7 @@ export async function addDocuments(c: CaseData, documents: ImportedDocument[]) {
   }
 }
 export async function intakeCase(
-  env: Env,
+  env: ModelEnv,
   sessionId: string,
   input: Intake,
 ): Promise<CaseData> {
@@ -48,7 +48,7 @@ export async function intakeCase(
   let requirements = [
     { id: "req_1", text: input.originalPrompt.slice(0, 1000) },
   ];
-  if (env.MODE === "live") {
+  if (env.modelMode === "live") {
     try {
       const proposed = await modelJson(
         env,

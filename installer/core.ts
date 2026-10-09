@@ -353,7 +353,6 @@ export async function advance(
           class_name: "InvestigationWorkflow",
         },
         ...Object.entries({
-          MODE: "live",
           MODEL_ID: "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
           AI_GATEWAY_ID: receipt.gateway,
           TURNSTILE_SITE_KEY: receipt.sitekey!,

@@ -1,5 +1,7 @@
 # Architecture
 
+Application settings live in the session registry, with Clef disabled by default. The same localhost app can switch between live and offline operation without restarting after service configuration. Provider bindings establish capability; they do not select the mode. Request handlers and Agent chat read the session choice, while a Workflow captures it at dispatch so later toggles cannot alter its provenance. Session signing and deployed Turnstile verification remain independent of model settings.
+
 ```mermaid
 flowchart LR
   Browser[React case file + chat] --> Worker[Worker / session boundary]

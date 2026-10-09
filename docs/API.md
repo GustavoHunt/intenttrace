@@ -1,5 +1,11 @@
 # API contract
 
+## Application settings
+
+Authenticated `GET /api/settings` returns `{clefEnabled, aiAvailable, mode}`. Same-origin `POST /api/settings` accepts only `{clefEnabled: boolean}` and saves it in the session registry. Sessions default to off; enabling without Workers AI and AI Gateway returns 503. Settings are isolated per session, retained through refresh, and expire with the 24-hour session. The environment selects service bindings, never offline/live mode.
+
+Intake and chat capture the session choice per request. A Workflow captures `modelMode` at dispatch and uses it for both Clef and the Llama explanation, including retries. Later setting changes do not alter an in-flight assessment or relabel existing findings. Deployment signing and Turnstile enforcement are independent of the AI setting.
+
 ## General intake
 
 | Route | Behavior |

@@ -191,7 +191,7 @@ describe("conversation intake", () => {
       documents: [{ name: "report.txt", content: "Report text" }],
     });
     const c = await intakeCase(
-      { MODE: "offline" } as any,
+      { modelMode: "offline" } as any,
       "synthetic-session",
       input,
     );

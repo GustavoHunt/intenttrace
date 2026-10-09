@@ -6,10 +6,10 @@ Download and extract the GitHub ZIP, or clone the repository. Install Node.js 22
 
 ```sh
 npm ci
-npm run dev:offline
+npm run dev
 ```
 
-Open the printed localhost URL. Intake, storage and CSV checks work locally. General assessments are explicitly unavailable offline. No credential prompt or remote provisioning occurs.
+Open the printed localhost URL. Clef starts off in **Settings**. Intake, storage, offline chat and CSV checks work locally; general reviews remain insufficient evidence without a model assessment. No credential prompt or remote provisioning occurs.
 
 ## With real Workers AI
 
@@ -27,10 +27,14 @@ In the Cloudflare dashboard:
 
 ```sh
 npm run setup:local
-npm run dev:live
+npm run dev
 ```
 
 Setup asks for **public IDs only** and writes ignored `wrangler.local.local.jsonc`. No app secret is needed on localhost: a random signing key is generated and persisted in local session storage. Local mode refuses requests addressed to public hostnames. Keep the server bound to `127.0.0.1`; do not expose it through a tunnel or reverse proxy.
+
+`npm run dev` detects the ignored local connection file. After this initial restart, use **Settings → Use Clef and live AI** to switch in real time. The setting is server-enforced, belongs to your 24-hour session, and survives a page refresh. It controls Clef assessments and Llama assistance. Turning it off affects new requests; a started assessment keeps its captured mode. Old `MODE` environment values are ignored. The legacy `dev:offline` command is just a startup alias, and `dev:live` adds a login check; neither overrides the app setting.
+
+Creating or reopening a conversation case opens **Timeline**. The optional guided tour highlights the actual requirements and assessment actions, waits for confirmation, directs you to artifacts or Settings when needed, then points to findings. **Skip tour** is remembered in this browser; **Guided tour** replays it.
 
 R2, SQLite Durable Objects and Workflows are emulated under `.wrangler`. Only the remote AI binding sends requests to Cloudflare. No deployed Worker, R2 activation, Turnstile widget, OAuth client or administration token is required.
 
@@ -45,7 +49,8 @@ For automation, supply public IDs with `INTENTTRACE_ACCOUNT_ID` and `INTENTTRACE
 - **Shared link or Code session restricted, blocked, dynamic or changed:** use chat-history JSON or labelled conversation paste. Attach omitted artifacts separately. Provider login cookies are never imported.
 - **Binary artifact URL:** download it and add the file. URL intake accepts public text/code/HTML only, not private networks.
 - **PDF has no readable text:** scanned pages need OCR beforehand. Extraction does not establish visual layout or behavior.
-- **AI quota exhausted:** evidence remains; wait or use offline intake. Failed inference is never represented as fixture CLEF output.
+- **Clef switch unavailable:** complete local Workers AI/Gateway setup, then restart once to load the bindings. Connection setup is separate from choosing whether to use AI.
+- **AI quota exhausted:** evidence remains; wait or turn Clef off in Settings. Failed inference is never represented as fixture CLEF output.
 - **Case expired:** records expire after 24 hours. Save a report if needed; it contains supplied evidence and should be stored privately.
 
 Stop the service with Ctrl+C. To reset the emulator, stop it and remove only this project's `.wrangler` directory, which removes local cases and sessions. Do not upload it to GitHub.

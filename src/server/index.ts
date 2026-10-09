@@ -52,9 +52,22 @@ import {
 } from "../shared/intake";
 import { intakeCase, addDocuments } from "./intake-case";
 import { assessRequirements } from "./clef";
+import {
+  SettingsSchema,
+  defaultSettings,
+  type AppSettings,
+  type ModelMode,
+} from "../shared/settings";
+import { aiAvailable, settingsView, withSettings } from "./settings";
+
+type InvestigationInput = {
+  agentName: string;
+  runId: string;
+  revision: number;
+  modelMode: ModelMode;
+};
 
 export interface Env {
-  MODE: "live" | "offline";
   AI?: Ai;
   BROWSER?: Fetcher;
   INSTALL_RELEASE?: string;
@@ -72,7 +85,7 @@ export interface Env {
   CaseAgent: DurableObjectNamespace<CaseAgent>;
   SESSIONS: DurableObjectNamespace<SessionRegistry>;
   BUDGET: DurableObjectNamespace<BudgetGuard>;
-  INVESTIGATE: Workflow<{ agentName: string; runId: string; revision: number }>;
+  INVESTIGATE: Workflow<InvestigationInput>;
   RATE_LIMITER?: RateLimit;
 }
 export class BudgetGuard extends DurableObject<Env> {
@@ -110,6 +123,7 @@ type SessionRecord = {
   id: string;
   expiresAt: number;
   cases: { id: string; title: string; createdAt: string }[];
+  settings?: AppSettings;
 };
 export class SessionRegistry extends DurableObject<Env> {
   async localKey() {
@@ -127,6 +141,7 @@ export class SessionRegistry extends DurableObject<Env> {
       id,
       expiresAt: Date.now() + 86400000,
       cases: [],
+      settings: { ...defaultSettings },
     };
     await this.ctx.storage.put("session", record);
     await this.ctx.storage.setAlarm(record.expiresAt);
@@ -148,6 +163,22 @@ export class SessionRegistry extends DurableObject<Env> {
         );
       r.cases.push(c);
       await this.ctx.storage.put("session", r);
+    });
+  }
+  async settings() {
+    return (await this.get()).settings || { ...defaultSettings };
+  }
+  async updateSettings(settings: AppSettings) {
+    return this.ctx.blockConcurrencyWhile(async () => {
+      const r = await this.get();
+      if (settings.clefEnabled && !aiAvailable(this.env))
+        throw new HttpError(
+          503,
+          "Configure Workers AI and AI Gateway before enabling Clef. See the local setup instructions.",
+        );
+      r.settings = SettingsSchema.parse(settings);
+      await this.ctx.storage.put("session", r);
+      return r.settings;
     });
   }
   async remove(id: string) {
@@ -347,11 +378,17 @@ export class CaseAgent extends AIChatAgent<
     try {
       const scope = start.c.scopes.at(-1)!;
       const sessionId = (await this.ctx.storage.get<string>("sessionId"))!;
+      const env = withSettings(
+        this.env,
+        await this.env.SESSIONS.get(
+          this.env.SESSIONS.idFromName(sessionId),
+        ).settings(),
+      );
       const config =
-        this.env.MODE === "offline"
+        env.modelMode === "offline"
           ? { selection: scope.selection, includeNotes: !scope.excludeNotes }
           : await modelJson(
-              this.env,
+              env,
               sessionId,
               'Propose bounded export configuration. JSON: {"selection":"filtered"|"project","includeNotes":boolean}.',
               JSON.stringify({ approvedScope: scope }),
@@ -363,7 +400,7 @@ export class CaseAgent extends AIChatAgent<
           c,
           scope.id,
           config,
-          this.env.MODE,
+          env.modelMode,
           operationId,
         );
         for (const a of c.artifacts)
@@ -375,16 +412,25 @@ export class CaseAgent extends AIChatAgent<
         await this.save(c);
         return { runId: run.id, c };
       });
-      await this.investigate(result.runId);
+      await this.investigate(result.runId, env.modelMode);
       return this.details();
     } catch (e) {
       await this.fail(e);
       throw e;
     }
   }
-  async investigate(runId?: string) {
+  async investigate(runId?: string, capturedMode?: ModelMode) {
     return this.locked(async () => {
       const c = await this.data();
+      const sessionId = (await this.ctx.storage.get<string>("sessionId"))!;
+      const modelMode =
+        capturedMode ||
+        settingsView(
+          this.env,
+          await this.env.SESSIONS.get(
+            this.env.SESSIONS.idFromName(sessionId),
+          ).settings(),
+        ).mode;
       if (c.status === "running" || c.status === "analysing")
         throw new HttpError(409, "An operation is already active");
       const run = c.runs.find((r) => r.id === (runId || c.runs.at(-1)?.id));
@@ -407,6 +453,7 @@ export class CaseAgent extends AIChatAgent<
             agentName: this.name,
             runId: c.intake ? c.id : run!.id,
             revision: c.revision,
+            modelMode,
           },
         });
       } catch (e) {
@@ -654,7 +701,14 @@ export class CaseAgent extends AIChatAgent<
     if (question.length > 2000)
       throw new HttpError(413, "Keep questions below 2,000 characters");
     let text: string;
-    if (this.env.MODE === "offline") {
+    const sessionId = (await this.ctx.storage.get<string>("sessionId"))!;
+    const env = withSettings(
+      this.env,
+      await this.env.SESSIONS.get(
+        this.env.SESSIONS.idFromName(sessionId),
+      ).settings(),
+    );
+    if (env.modelMode === "offline") {
       const f = c.findings.at(-1);
       text =
         "Offline demonstration response. " +
@@ -668,9 +722,8 @@ export class CaseAgent extends AIChatAgent<
               .join(", ")
           : "Confirm the scope and run the demonstration to collect evidence.");
     } else {
-      const sessionId = (await this.ctx.storage.get<string>("sessionId"))!;
       const selection = await modelJson(
-        this.env,
+        env,
         sessionId,
         'Select one read-only investigation tool. JSON: {"tool":"scope"|"events"|"findings"}.',
         JSON.stringify({
@@ -687,7 +740,7 @@ export class CaseAgent extends AIChatAgent<
             ? c.events.slice(-15)
             : c.findings.slice(-2);
       const answer = await modelJson(
-        this.env,
+        env,
         sessionId,
         'Answer from supplied evidence only. JSON: {"text":string,"evidenceIds":string[]}. State uncertainty and distinguish supplied evidence from observations. Never change deterministic verdicts.',
         JSON.stringify({
@@ -737,13 +790,15 @@ export class CaseAgent extends AIChatAgent<
 
 export class InvestigationWorkflow extends WorkflowEntrypoint<
   Env,
-  { agentName: string; runId: string; revision: number }
+  InvestigationInput
 > {
-  async run(
-    e: WorkflowEvent<{ agentName: string; runId: string; revision: number }>,
-    step: WorkflowStep,
-  ) {
+  async run(e: WorkflowEvent<InvestigationInput>, step: WorkflowStep) {
     const agent = await getAgentByName(this.env.CaseAgent, e.payload.agentName);
+    // Capture the choice at dispatch; a later toggle never relabels an in-flight run.
+    const env = {
+      ...this.env,
+      modelMode: e.payload.modelMode || ("offline" as const),
+    };
     try {
       const snapshot = await step.do("Snapshot evidence", async () => {
         const s = await agent.snapshot(e.payload.runId, e.payload.revision);
@@ -760,7 +815,7 @@ export class InvestigationWorkflow extends WorkflowEntrypoint<
           intake?: CaseData["intake"];
         }>();
         if (data.intake) {
-          const assessed = await assessRequirements(this.env, data.sessionId, {
+          const assessed = await assessRequirements(env, data.sessionId, {
             ...newCase("correct"),
             ...data.bundle,
             intake: data.intake,
@@ -780,11 +835,11 @@ export class InvestigationWorkflow extends WorkflowEntrypoint<
           const fallback = checked.findings
             .map((f) => `${f.criterion}: ${f.explanation}`)
             .join("\n");
-          if (this.env.MODE === "offline")
+          if (env.modelMode === "offline")
             return { summary: fallback, mode: "offline" as const };
           try {
             const answer = await modelJson(
-              this.env,
+              env,
               checked.sessionId,
               'Explain the supplied findings without changing statuses. For CLEF results, call them model assessments, not proof; probabilities are not guarantees. JSON: {"text":string,"evidenceIds":string[]}.',
               JSON.stringify(checked.findings),
@@ -828,7 +883,7 @@ export class InvestigationWorkflow extends WorkflowEntrypoint<
 
 async function signingKey(env: Env) {
   if (env.SESSION_SIGNING_SECRET) return env.SESSION_SIGNING_SECRET;
-  if (env.MODE === "offline" || env.LOCAL_DEVELOPMENT === "true")
+  if (env.LOCAL_DEVELOPMENT === "true")
     return env.SESSIONS.get(env.SESSIONS.idFromName("local-key")).localKey();
   throw new HttpError(503, "Session signing secret is not configured");
 }
@@ -872,17 +927,10 @@ export default {
         );
       if (path === "/api/install-check" && req.method === "POST")
         return await installationCheck(req, env);
-      if (
-        env.MODE === "offline" &&
-        !["localhost", "127.0.0.1", "::1"].includes(url.hostname)
-      )
-        throw new HttpError(
-          503,
-          "Offline mode is restricted to local development",
-        );
       if (path === "/api/config")
         return json({
-          mode: env.MODE,
+          mode: "offline",
+          aiAvailable: aiAvailable(env),
           siteKey: env.TURNSTILE_SITE_KEY,
           model: env.MODEL_ID,
           local,
@@ -892,10 +940,7 @@ export default {
         const body = z
           .object({ token: z.string().max(2048).optional() })
           .parse(await readJson(req, 5000));
-        if (
-          env.MODE === "live" &&
-          !(local && env.LOCAL_DEVELOPMENT === "true")
-        ) {
+        if (!(local && env.LOCAL_DEVELOPMENT === "true")) {
           if (
             !env.TURNSTILE_SECRET_KEY ||
             !env.SESSION_SIGNING_SECRET ||
@@ -950,6 +995,14 @@ export default {
         )
           throw new HttpError(429, "Too many requests. Please wait a moment.");
         const r = await s.registry.get();
+        if (path === "/api/settings" && req.method === "GET")
+          return json(settingsView(env, await s.registry.settings()));
+        if (path === "/api/settings" && req.method === "POST") {
+          const settings = SettingsSchema.parse(await readJson(req, 5000));
+          return json(
+            settingsView(env, await s.registry.updateSettings(settings)),
+          );
+        }
         if (path.startsWith("/agents/")) {
           const allowed = r.cases.some(
             (c) =>
@@ -977,7 +1030,7 @@ export default {
           let c: CaseData;
           if (path === "/api/intake") {
             c = await intakeCase(
-              env,
+              withSettings(env, await s.registry.settings()),
               s.id,
               IntakeSchema.parse(await readJson(req)),
             );

@@ -165,6 +165,12 @@ Controls and event rows use the control radius. Intake text fields use the field
 
 ## Components
 
+### Guided assessment and application settings
+
+General case arrivals open Timeline. An inline, optional guide sits above the requirement editor and follows the actual approval and assessment state. Its three numbered steps communicate order; the active step uses cobalt and a written label. Actions scroll to and focus the real editor, artifact input, Settings region or findings. Skip is always visible, dismissal is remembered in this browser, and the case-view row offers replay. Highlight the current action with a cobalt outline; keep the rest of the case usable.
+
+Application settings expand within the main work surface from the header. A labelled native switch controls Clef and live AI, accompanied by capability, saving, cost/context and offline feedback. Preserve the header mode badge and each finding's original mode independently. Incomplete evidence uses the amber status treatment. On phones, guide steps stack, header actions wrap, and the setting remains in normal document flow; neither surface uses a modal overlay.
+
 ### Buttons
 
 Primary actions use cobalt, white text, medium weight, and the control radius. Secondary actions use white or transparent surfaces, cobalt text, and a pale border. The case desk uses 14px semibold labels; installer actions use 15px semibold labels and larger insets. Disabled controls reduce opacity and change the cursor. Global focus outlines are three pixels wide with an offset; they apply to keyboard interaction across buttons and links.

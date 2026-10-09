@@ -12,10 +12,10 @@ Use Node.js **22.13 or newer** and npm. Download with **Code → Download ZIP**,
 
 ```sh
 npm ci
-npm run dev:offline
+npm run dev
 ```
 
-Open the localhost address printed in the terminal, normally `http://127.0.0.1:5173`. Offline mode exercises intake, case memory, chat and the CSV verifier without credentials. **It does not call an LLM or CLEF.** General requirements remain insufficient evidence until assessed in live mode.
+Open the localhost address printed in the terminal, normally `http://127.0.0.1:5173`. Clef starts **off** in application **Settings**. Intake, case memory, offline chat and the CSV verifier work without credentials or model calls. General requirements remain insufficient evidence until assessed with Clef enabled.
 
 ## Enable live Llama + CLEF
 
@@ -25,10 +25,12 @@ Open the localhost address printed in the terminal, normally `http://127.0.0.1:5
 
 ```sh
 npm run setup:local
-npm run dev:live
+npm run dev
 ```
 
-Setup writes an ignored local configuration. R2, Durable Objects and Workflows run in Cloudflare's local emulator; only AI calls use your account. This path requires no deployed Worker, R2 activation, Turnstile widget or OAuth client. Live calls use account quota and can incur charges. The app reserves calls before inference (30 per session, 200 per day by default); these limits do not cap your entire Cloudflare bill.
+Setup writes an ignored local configuration, which `npm run dev` detects automatically. Open **Settings → Use Clef and live AI** to enable or disable models while the app is running. The choice is saved for your private 24-hour session and survives refresh. No mode environment variable or restart is needed to switch; initial service setup needs one restart to load the bindings. An assessment already started keeps its captured mode, and prior findings keep their original labels.
+
+R2, Durable Objects and Workflows run in Cloudflare's local emulator; only AI calls use your account. This path requires no deployed Worker, R2 activation, Turnstile widget or OAuth client. Live calls use account quota and can incur charges. The app reserves calls before inference (30 per session, 200 per day by default); these limits do not cap your entire Cloudflare bill.
 
 If login expires, run `npx wrangler whoami`, then retry. See [setup and troubleshooting](docs/INSTALLATION.md).
 
@@ -36,8 +38,8 @@ If login expires, run `npx wrangler whoami`, then retry. See [setup and troubles
 
 1. Paste a ChatGPT or Claude conversation URL and choose **Read shared conversation**. The shared regex validator accepts `https://chatgpt.com/<route>` (including `/s/<id>`, `/share/<id>` and `/c/<id>`), `https://claude.ai/share/<id>`, and `https://claude.ai/code/session_<id>`. Review the imported prompt. Valid URL format does not establish public access: private chats and Code sessions may require the export/paste fallback. Shared snapshots can omit attachments.
 2. Add the delivered artifact as a file, public HTTPS text/code/HTML URL, or pasted text. Files include text, code, CSV, JSON, Markdown, PDF and DOCX. PDF/DOCX assessment covers extracted text, not layout, images or behavior.
-3. Create the case. In live mode Llama proposes requirements; edit them to one testable requirement per line and **Confirm requirements**. Extraction failure preserves the prompt for manual review.
-4. Choose **Assess with CLEF**. A Workflow snapshots evidence, calls the actual `@cf/cloudflare/clef` decision model, retains probabilities, and asks Llama to explain the findings. Inspect linked evidence or ask the persistent investigation chat a question.
+3. Create the case. It opens **Timeline**, where the guided tour points to the requirement editor and **Confirm requirements**. With live AI enabled, Llama proposes drafts; otherwise the original request is preserved for manual editing. Use one testable requirement per line. The tour can be skipped or replayed from **Guided tour**.
+4. Enable Clef in **Settings**, then choose **Assess with Clef**. A Workflow snapshots evidence and the selected mode, calls the actual `@cf/cloudflare/clef` decision model, retains probabilities, and asks Llama to explain the findings. The guide advances to **Inspect findings**. With Clef off, **Record offline review** records insufficient evidence without model calls.
 
 CLEF is a model assessment, not proof. A supported/contradicted result needs a top probability of at least 75% and a margin of at least 20 percentage points; otherwise IntentTrace reports insufficient evidence. These are application thresholds, not calibrated accuracy guarantees. Missing artifacts also yield insufficient evidence, irrespective of conversation claims. No arbitrary code, page script or repository is executed.
 
